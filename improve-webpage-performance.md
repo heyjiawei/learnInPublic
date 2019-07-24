@@ -7,4 +7,4 @@ How to improve performance from Alex Lakatos performance profiling session of sh
 6. It's the transfer size (gzipped) that contributes to download speed
 7. Don't use too many promises
 8. Use less in-line styling OR have it styled all at one go. This will keep causing the DOM to be repainted and be slow (and have that flashing effect)
-9. Javascript browser memory footprint keeps growing unless an item is specifically deleted with the delete keyword. If uses stick to the site for a long time, navigating to more pages can cause consume more memory and eventually cause performance issue.
+9. Javascript browser memory footprint keeps growing unless an item is specifically deleted with the delete keyword. If users use the site for a long time, navigating to more pages can cause consume more memory and eventually cause performance issue. On the other hand, if they don't use the site often, we can take advantage of that and use browser memory to improve web performance.
