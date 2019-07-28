@@ -1,4 +1,4 @@
-- SSR is often referred to as "isomorphic" or "universal" application
+- SSR is often referred to as "isomorphic" or "universal" application. This is because JS is ran in both browser and server (node.js) platforms, albeit their JS implementation differences.
 - They allow us to generate HTML for pages whose content is not known at build time
 
 How does it do this?
@@ -35,9 +35,20 @@ as opposed to
 ```
 
 Here are the trade-offs / things you need to be mindful of in using SSR:
+- limited access to platform-specific APIs.
+	- Universal code cannot assume access to platform-specific APIs, so if your code directly uses browser-only globals like window or document, they will throw errors when executed in Node.js, and vice-versa.
+	- For tasks shared between server and client but use different platform APIs, it's recommended to wrap the platform-specific implementations inside a universal API, or use libraries that do this for you. For example, axios.
+	- For browser-only APIs, the common approach is to lazily access them inside client-only lifecycle hooks.
+	- For 3rd party library is not written with universal usage in mind, it could be tricky to integrate it into an server-rendered app.
+	- It is not recommended to mock some of the globals for it is hacky and you may interfere with the environment detection code of other libraries.
+
 - server side application state will not be passed on to client application state.
+	- Since there are no dynamic updates, only limited lifecycle hooks will be called during SSR. This means that states called in other lifecycle methods may not be ran.
+	- Avoid code that produces global side effects
 	- Does this application state refer to the component state? Or the redux state? or both?
+		- both
 	- does that mean that api calls won't work?
+		- depends on which lifecycle they are ran in. Because the actual rendering process needs to be deterministic, some data will be prefetched on the server - this means the application state will contain them when it starts rendering.
 
 - For react, componentDidMount is not called on the server. If you are fetching data there, those apis will not be called. 
 	- So you put your apis calls in componentWillMount?
