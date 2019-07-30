@@ -1,0 +1,4 @@
+JavaScript 'first class object'
+What does it mean for functions in JavaScript to be first class objects?
+- this means that the language supports constructing new functions during the execution of a program, storing them in data structures, passing them as arguments to other functions, and returning them as values of other functions.
+- Basically, it means that you can do with functions everything that you can do with all other elements in the programming language. So, in the case of JavaScript, it means that everything you can do with an Integer, a String, an Array or any other kind of Object, you can also do with functions.
