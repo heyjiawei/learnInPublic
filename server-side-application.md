@@ -48,7 +48,7 @@ Here are the trade-offs / things you need to be mindful of in using SSR:
 	- Does this application state refer to the component state? Or the redux state? or both?
 		- both
 	- does that mean that api calls won't work?
-		- depends on which lifecycle they are ran in. Because the actual rendering process needs to be deterministic, some data will be prefetched on the server - this means the application state will contain them when it starts rendering.
+		- depends on which lifecycle they are ran in. Because the actual rendering process needs to be deterministic, some data will be prefetched on the server - this means the application state will contain them when it starts rendering. **This also means you should avoid stateful singletons** (Node.js server is a long-running process. When our code is required into the process, it will be evaluated once and stays in memory. This means if you create a singleton object, it will be shared between every incoming request)
 
 - For react, componentDidMount is not called on the server. If you are fetching data there, those apis will not be called. 
 	- So you put your apis calls in componentWillMount?
@@ -146,3 +146,7 @@ app.get('/with-react-router*', (req, res) => {
   }
 })
 ```
+
+So what are the changes from browser to SSR?
+1. Avoid stateful Singletons and use factory functions instead
+2. Introduce a build step for SSR. The server bundle will be required by the server and used for SSR, while the client bundle will be sent to the browser to hydrate the static markup
