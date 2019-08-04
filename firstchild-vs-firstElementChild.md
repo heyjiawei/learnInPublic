@@ -1,0 +1,3 @@
+- firstChild is in Node interface whereas firstChildElement is in ParentNode interface. Both of which are implemented by Node object.
+- firstChild returns the first child node as an element node, a text node or a comment node. (Whitespace inside elements is considered as text and text is considered as nodes)
+- firstChildElement only returns the first child node as an element node (it ignores text and comment nodes)
