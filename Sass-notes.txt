@@ -1,0 +1,578 @@
+variables
+nesting
+partials
+mixins
+inheritance
+
+overly nested rules will result in over-qualified CSS
+over-qualified CSS is proven to be hard to maintain
+
+nesting follows HTML visual hierarchy. 
+nav {
+  ul {
+
+  }
+}
+
+is similar to 
+<nav>
+  <ul></ul>
+</nav>
+
+and so refers to CSS descendant selector
+
+partials are SASS files that contains snippets of CSS that you can include in other Sass files
+they are util constants that help make things easier to maintain
+partial SASS files are distinct from their filename; Filenames have a leading underscore 
+The underscore is for preprocessor to take note that they should not be generated into a CSS file
+These files are only meant to be loaded as modules, not compiled on their own.
+
+SASS partials are used with the @use rule
+
+Modules
+When you load another SASS file, it will be loaded as a module.
+After loading, you can refer to its variables, mixins and functions in your current SASS file. You just need to use a namespace based on the filename.
+Modules are introduced to encourage you not to write all your SASS in a single file.
+To use a module, you need to use the @use rule
+
+when you @use a file, e.g. _base.scss
+@use 'base';
+you don't need to include the file extension
+
+Mixins
+Lets you create a group of CSS declarations that can be reused.
+You can pass in values (remember property-value CSS pair? This value refers to the value of a property)
+Mixins exist to make it easy to avoid non-semantic classes like .float-left and distribute collections of styles in libraries.
+
+To create a @mixin, you need to use @mixin directive. A directive is a code line (statement) that tells the compiler something. It is not code that ever gets executed; it is simply to help the complier compile your code.
+Afer the @mixin directive, give it a name. You can pass it a arguments like a function.
+TO use the mixin, add @include <mixin name>(optional arguments) into your CSS declaration
+
+.box { @include border(1px); }
+
+Mixins cannot contain top-level statements (@use, @import, @mixin, @function). You can include mixins within mixins since to use a mixin, you use @include 
+
+Mixin optional arguments
+You can use default arguments in mixins.
+Default arguments can be any SassScript expression, even earlier arguments.
+
+@mixin replace-text($image, $x: 50%, $y: 50%) {
+  background {
+    image: $image;
+    position: $x $y;
+  }
+}
+
+.mail-icon {
+  @include replace-text(url("/images/mail.svg"), 0);
+}
+
+.mail-icon {
+  background-image: url("/images/mail.svg");
+  background-position: 0 50%;
+}
+
+Mixin keyword arguments
+arguments to mixins can be passed by name in addition to passing them by position in the argument list. 
+This is useful if the mixin has multiple optional arguments, or arguments whose meanings aren't obvious without a name to go with them.
+
+@mixin square($width: 0, $height: 0, $radius: 0) {
+  width: $width;
+  height: $height;
+
+  border-radius: $radius;
+}
+
+.avatar {
+  @include square(100px, $radius: 4px);
+}
+
+Mixin taking arbitrary arguments / any number of arguments
+If the last argument in a @mixin declaration ends in ..., then all extra arguments to that mixin are passed to that argument as a list. 
+This argument is known as an argument list.
+
+@mixin order($height, $selectors...) {
+  @for $i from 0 to length($selectors) {
+    #{nth($selectors, $i + 1)} {
+      height: $height;
+      margin-top: $i * $height;
+    }
+  }
+}
+
+@include order(150px, "input.name", "input.address", "input.zip");
+
+input.name {
+  height: 150px;
+  margin-top: 0px;
+}
+
+input.address {
+  height: 150px;
+  margin-top: 150px;
+}
+
+input.zip {
+  height: 150px;
+  margin-top: 300px;
+}
+
+Mixin passing arbitrary arguments
+You can pass positional and keyword arguments to a mixin if you pass a list followed by ... as the last argument of an @include
+You can pass a mpa followed by ... and it will be treated as additional keyword arguments. 
+You can pass both (positional and keyword, map) at once.
+
+$form-selectors: "input.name", "input.address", "input.zip" !default;
+
+@include order(150px, $form-selectors...);
+
+
+Mixin content blocks
+This is like copying a selector and it's curly braces. Like a Higher order component.
+THe mixin takes a content block by including the @content rule in its body.
+The content block is passed in using curly braces and properties within the block is injected in place of @content rule.
+
+@mixin hover {
+  &:hover {
+    @content;
+  }
+}
+
+.button {
+  border: 1px solid black;
+  @include hover {
+    border-width: 2px;
+  }
+}
+
+.button {
+  border: 1px solid black;
+}
+
+.button:hover {
+  border-width: 2px
+}
+
+The content block is lexically scoped; it can only see local variables in the scope where the mixin is included.
+
+Mixin passing arguments to @content Content blocks
+A mixin can pass arguments to its content block @content(<arguments...>)
+To accept/use arguments passed in by the mixin, @include <name> using (<arguments...>)
+If a mixin passes arguments to its content block, that content block must declare that it accepts those arguments.
+It’s a good idea to only pass arguments by position (rather than by name), and it means that passing more arguments is a breaking change.
+If you want to be flexible in what information you pass to a content block, consider passing it a map that contains information it may need!
+
+@mixin media($types...) {
+  @each $type in $types {
+    @media #{$type} {
+      @content($type);
+    }
+  }
+}
+
+@include media(screen, print) using ($type) {
+  h1 {
+    font-size: 40px;
+    @if $type == print {
+      font-family: Calluna;
+    }
+  }
+}
+
+@media screen {
+  h1 {
+    font-size: 40px;
+  }
+}
+@media print {
+  h1 {
+    font-size: 40px;
+    font-family: Calluna;
+  }
+}
+
+
+Extend/inheritance
+@extend <selector>
+Only individual selectors can be extended. To extend multiple selectors,
+@extend <selector1>, <selector2>
+@extend lets you use a created group of CSS declarations (grouped perhaps by behaviour). 
+Use it when one class should have all the styles of another class, as well as its own specific styles.
+Think of @extend like a placeholder; default behaviour that is inherited.
+
+%message-shared {
+
+}
+
+.warning {
+  @extend %message-shared;
+  border-color: yellow;
+}
+
+Placeholder selectors
+starts with % and is not included in the CSS output. They are useful when writing a SASS library where each style rule may or may not be used. 
+
+%toolbelt {
+  box-sizing: border-box;
+
+  &:hover { border: 2px rgba(#000, .5) solid; }
+}
+
+.action-buttons {
+  @extend %toolbelt;
+  color: #4285f4;
+}
+
+.reset-buttons {
+  @extend %toolbelt;
+  color: #cddc39;
+}
+
+.action-buttons, .reset-buttons {
+  box-sizing: border-box;
+}
+
+.action-buttons:hover, .reset-buttons:hover {
+  border: 2px rgba(0, 0, 0, 0.5) solid;
+}
+
+.action-buttons {
+  color: #4285f4;
+}
+
+.reset-buttons {
+  color: #cddc39;
+}
+
+There is the extended class, and the extending class. The extending class contains @extend.
+When the extending class uses @extend, it works as though the extended class is added to every element containing the extending class.
+Sass knows to extend everywhere the selector is used.
+Extends are resolved after the rest of your stylesheet is compiled. 
+The extension scope (scope affected by @extend) will only affect style rules in upstream modules (i.e. modules loaded by current stylesheet using @use or @forward, and modules loaded by those modules, and so on). 
+If you use @import rule, extensions become global. This means they will affect every stylesheet you import and affect every stylesheet that imports your stylesheet, and everything else those stylesheet import, and so on.
+If @extend doesn't match any selectors in the stylesheet, Sass will produce an error. 
+If you want the @extend to do nothing if the extended selector doesn't exist, add !optional to the end.
+
+.error:hover {
+  background-color: #fee;
+}
+
+.error--serious {
+  @extend .error;
+  border-width: 3px;
+}
+
+.error:hover, .error--serious:hover {
+  background-color: #fee;
+}
+
+.error--serious {
+  border-width: 3px;
+}
+
+operatiors
+you can directly use operators without calc()
+
+.container {
+  width: 900px / 3px * 100%
+}
+
+Can be used anywhere in a SASS stylesheet
+variable declarations
+flow control at-rules (@if and @each)
+@error, @warn and @debug rules 
+
+The following cannot be used within a @function
+nesting
+@mixin
+CSS at-rules like @media and @font-face
+@at-root rule
+
+You must use or add these statements at the top of the stylesheet; nested within a CSS statement at the top level. In SCSS CSS statements are separated by semicolons (;)
+Module loading @use
+Imports @import
+@mixin
+@function
+
+The following must only be used within style rules (nesting, inheritance, mixin)
+@extend 
+
+Expressions are anything on the right-hand side of a property or variable declaration.
+They can be passed as arguments to @mixins, @functions, @if 
+
+Literal expressions:
+numbers, strings, colors
+boolean literals e.g. true or false
+null
+List of values separated by spaces or commas. May also be enclosed in square brackets
+Maps ("background": red, "foreground": pink)
+
+Argument Lists
+When you declare a mixin or function that takes arbitrary arguments, you get an argument list. 
+Argument list has a map feature as well; if the user passed keyword arguments, they can be accessed as a map by passing the argument list to meta.keywords() function.
+
+
+Operations expressions:
+== != your boolean check on whether 2 values are the same.
+< <= > >= whether 2 numbers are greater or less than one another.
+and or not SCSS considers every value "true" except for false and null
++ - / can be used to concatenate strings
+( and ) can be used to explicitly control the precedence order of operations.
+
+Comments
+single line comments // are silent comments; they don't produce any CSS.
+multi-line comments /* */ are loud comments and are compiled to CSS comment.
+interpolation works in multi-line comments.
+/*! */ are muli-line comments that will remain in CSS output
+
+comments are indentation-based. So everything indented beneath the opening // is also commented out.
+
+// This comment won't be included in the CSS.
+   This is also commented out.
+
+Documentation comments
+These commentsare read by SassDoc tool to generate documentation.
+They are silent comments written with 3 slashes (///), directly above what you are documenting. SassDoc parses text in the comments as Markdown
+
+Special functions
+All special function calls return unquoted strings.
+
+The CSS function url() can take in eiher a quoted or unquoted URL. If an unquoted URL is passed into it, SASS will require special logic to parse it.
+The logic is as follows: 
+if it is a valid unquoted URL, SASS parses it as is.
+if it isn't a valid unquoted URL, e.g. it contains variables or function calls, its parsed as a plain CSS function call.
+
+interpolation can be used to inject dynamic values into these special functions
+
+SCSS Style Rules:
+selector list means that nesting within comma separated selectors will create a combined selector as follows:
+
+.alert, .warning {
+  ul, p {
+
+  }
+}
+
+.alert ul, .alert p, .warning ul, .warning p {}
+
+You can also nest properties that start with the same prefix.
+
+.enlarge {
+  transition: {
+    delay: 2s;
+    duration: 4s;
+  }
+}
+
+.enlarge {
+  transition-delay: 2s;
+  transition-duration: 4s;
+}
+
+If you are writing shorthand versions that use the namespace as property name:
+
+.info-page {
+  margin: auto {
+    bottom: 0;
+  }
+}
+
+.info-page {
+  margin: auto;
+  margin-bottom: 0;
+}
+
+Interpolation
+This is using the values passed from arguments into your selectors or values.
+SCSS only parses selectors after interpolation is resolved.
+
+@mixin emoji($name, $glyph, $property, $value) {
+  span.emoji-#{$name} {
+    content: $glyph;
+    #{$property}: $value;
+  }
+}
+
+@include emoji("thinking", "X", filter, grayscale(50%));
+
+span.emoji-thinking {
+  content: "X";
+}
+
+Unfortunately, interpolation removes quotes from strings. You will need to use meta.inspect() function to preserve quotes.
+
+@use "sass:meta";
+
+$font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+
+.page {
+  font: #{meta.inspect($font-family-sans-serif)};
+}
+
+Hidden declarations
+If a declaration's value is null or an empty unquoted string, SASS won't compile that declaration to CSS 
+
+Parent selectors &
+parent selectors are only allowed at the beginning of compound selectors. E.g. span& is not allowed but &--copy or &__open is allowed. 
+
+Unique uses of &
+if the & expression is used outside any style rules, it returns null. Hence, you can use it to determine whether a mixin is being called in a style rule or not.
+
+@mixin app-background($color) {
+  #{if(&, '&.app-background', '.app-background')} {
+    background-color: $color;
+  }
+}
+
+@include app-background(red);
+
+.sidebar {
+  @include app-background(blue);
+}
+
+resulting CSS:
+
+.app-background {
+  background-color: red; 
+}
+
+.sidebar.app-background {
+  background-color: blue;
+}
+
+You can pass & as a normall SASSScript expression; pass it to functions or include it in interpolation or other selectors.
+
+(???) When Sass is nesting selectors, it doesn’t know what interpolation was used to generate them. This means it will automatically add the outer selector to the inner selector even if you used & as a SassScript expression. That’s why you need to explicitly use the @at-root rule to tell Sass not to include the outer selector.
+
+SASS variables
+they are different from CSS variables.
+SASS variables are imperative; if you use a variable and then change its value, the earlier use value will stay the same.
+CSS variables are declarative. If you use a variable and then change its value, it will affect both earlier and later uses.
+
+SASS treats variables hyphens and underscores as identical.
+You can set a default value for your variables with !default. This is useful if you want to allow your users to configure your library's variables. 
+Only variables written at the top level of the stylesheet with a !default flag can be configured.
+
+$black: black !default;
+
+To load a module with configuration, write @use <url> with (<variable>: <value>, <variable>: <value>). 
+
+variables are scoped. Those at the top level of a stylesheet are global and can be accessed anywhere in their module. 
+variables declared in blocks are local and can only be accessed within the block they were declared.
+local variables can be declared with the same name as global variables. This is called shadowing. 
+This was to ensure authors writing a local variable doesn't accidentally change the value of a global variable.
+
+A variable declaration flagged with !global will always be assigned to the global scope.
+The !global flag may only be used to set a variable that has already been declared at the top level of a file. It may not be used to declare a new variable.
+variables declared in flow control rules (like @if) don't shadow variables at the same level as the flow control rule; They overwrite those variables.
+variables in flow control scope acan assign to existing variables in the outer scope but they can't declare new variables in flow control scope.
+
+You cannot define a variable name from another variable name. However, you can define a map of variables.
+
+@use "sass:map";
+
+$theme-colors: {
+  "warning": #ffc107,
+}
+
+.alert {
+  background-color: map.get($theme-colors, "warning");
+}
+
+At rules
+
+Plain CSS at-rules in SASS can contain interpolation. Some CSS at-rules like @media and @support can also allow SASSscript to be used directly in the rule itself without interpolation.
+
+@use
+It loads mixins, function and variables from other Sass stylesheets.
+@use must come before any rules. The only exception is @forward
+@use rule is written @use "<url>", which loads the module at the given URL.
+styles loaded this way will be included exactly once in the compiled CSS output.
+
+You can access variables, functions, and mixins from another module by writing <namespace>.<variable>, <namespace>.<function>(), or @include <namespace>.<mixin>()
+
+By default, the namespace is just the last component of the module’s URL.
+If you want to alias it, or load multiple modules with the same filename, you can write @use "<url>" as <namespace> 
+To load a module without namespace,  @use "<url>" as *
+
+Members (variables, functions, and mixins) loaded with @use are only visible in the stylesheet that loads them. Other stylesheets will need to write their own @use rules if they also want to access them.
+
+As @use adds namespaces to member names, its alright to use simple names for variable/functions/mixins.
+
+Private members of @use
+A private member starts with - or _
+They are not part of a module's public API.
+
+Configuration / overriding variables of imported modules
+A stylesheet can define variables with the !default flag to make them configurable.
+The configured values will override the variables’ default values.
+To load a module with configuration, write @use <url> with (<variable>: <value>, <variable>: <value>).
+If you have many configurations, pass maps as configuration instead.
+
+// _lib.scss
+$black: #000 !default;
+
+// style.scss
+@use 'lib' with (
+  $black: white
+)
+
+Load path
+SASS loads files by URL. This means you need to use forward slashes even on windows.
+Modules will always be loaded relative to the current file first.
+Load path (configured) will only be used if no relative file exists that matches the module's URL.
+Sass doesn't require that you use ./ for relative imports as they are always available.
+
+If you name your sass file _index, the index file will be loaded automatically when you load URL for the folder itself. Just like HTML.
+
+Sass can also load .css files
+
+@functions
+Written @function <name>(<arguments...>) { ... }
+It can only contain universal statements (i.e. statements that can be used anywhere in a Sass stylesheet. $var, @if and @each, @error, @warn and @debug rules).
+Use @return to indicate the value to return as a result of the function call. This is the unique attribute that separates functions from mixin.
+@return is only allowed within a @function body and each @function must end with a @return
+Use functions just to compute values and mixins for side-effects (like setting global values)
+
+Aside from user-defined @function, Sass also has a core library of built-in functions/modules. 
+
+Built-in modules
+Loaded with @use "sass:<module>"
+
+Flow control 
+@if at-rule
+@if rule is written @if <expression> { ... }
+@if controls whether its block gets evaluated (or emits any styles as CSS)
+
+an @if rule can be optionally followed by an @else 
+@else { ... }
+@else if <expression> {... }
+Empty strings, empty lists, and the number 0 are all truthy in Sass.
+
+@each at-rule
+@each <variable> in <expression> { ... } where <expression> returns a list.
+The block is evaluated for each element of the list in turn. 
+
+If you use @each to iterate over a map, 
+@each <variable>, <variable> in <expression> { ... } whereby the key is assigned to the first variable name and the value is assigned to the second.
+@each also supports destructuring.
+
+SCSS SYNTAX
+$icons:
+  "eye" "\f112" 12px,
+  "stop" "\f12f" 10px;
+
+@each $name, $glyph, $size in $icons {
+  .icon-#{$name}:before {
+
+  }
+}
+
+@for at-rule
+@for <variable> from <expression> to <expression> { ... } 
+If to is used, the final number is excluded.
+@for <variable> from <expression> through <expression> { ... }
+If through is used, it's included.
+
+@while at-rule
+@while <expression> { ... }
