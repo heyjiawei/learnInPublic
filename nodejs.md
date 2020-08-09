@@ -141,6 +141,179 @@ If you type .break at the end of a line, the multiline mode will stop and the st
 
 ## Output to Node.js
 
+- node.js has a console module. It is basically the same as the console object in browser.
+- If you pass an object, it will render it as a string.
+- We can also format pretty phrases by passing variables and a format specifier.
+  - %s format a variable as a string
+  - %d format a variable as a number
+  - %i format a variable as its integer part only
+  - %o format a variable as an object
+  - `console.log('My %s has %d years', 'cat', 2)`
+- `console.trace()` prints the stack trace
+- You can calculate how much time a function takes to run, using `time()` and `timeEnd()`
+- You can color the output of your text in the console by using [escape sequences](https://gist.github.com/iamnewton/8754917). However, this is the low-level way to do this. The simplest way to go about coloring the console output is by using a library like Chalk.
+- You can create a progress bar in the console with [Progress](https://www.npmjs.com/package/progress)
+
+## Make Node.js CLI program interactive
+
+- use readline module to perform this.
+- get input from a readable stream like `process.stdin` stream
+
+  - during execution, it reads the terminal input one line at a time
+
+```
+const readline = require('readline').createInterface({
+  input: process.stdin,
+  output: process.stdout
+})
+
+readline.question(`What's your name?`, name => {
+  console.log(`Hi ${name}!`)
+  readline.close()
+})
+```
+
+- The question() method shows the first parameter (a question) and waits for the user input. It calls the callback function once enter is pressed.
+- If you need to require a password, it's best not to echo it back, but instead show a \* symbol.
+- The simplest way is to use the readline-sync package which is very similar in terms of the API and handles this out of the box.
+- A more complete and abstract solution is provided by the Inquirer.js package.
+
+## Node.js exports
+
+- to import a functionality, the functionality must be exposed before it can be imported by other files
+
+  - Any other object or variable defined in the file by default is private and not exposed to the outer world.
+
+- the `module.exports` API from module allows this
+- exposing objects/functions as new exports can be done in 2 ways
+
+1. The first is to assign an object to module.exports, which is an object provided out of the box by the module system, and this will make your file export just that object. This is `module.exports` and it exposes the object it points to.
+
+```
+const car = {
+  brand: 'Ford',
+  model: 'Fiesta'
+}
+
+module.exports = car
+
+//..in the other file
+
+const car = require('./car')
+```
+
+2. The second way is to add the exported object as a property of exports. This way allows you to export multiple objects, functions or data. This is `exports` and it exposes the properties of the object it points to.
+
+```
+exports.car = {
+  brand: 'Ford',
+  model: 'Fiesta'
+}
+```
+
+and the importing file you can reference it with
+`const items = require('./items') items.car` or `const car = require('./items').car`
+
+## npm package manager
+
+- yarn is an alternative to npm. npm is the standard package manager for Node.js
+- npm manages downloads of dependencies of your project.
+- if a project has package.json, running `npm install` will install everything the project needs and the node_modules folder will be created if it does not already exist.
+- devDependencies `--save-dev` are usually development tools. While dependecies `--save` are bundled with the app in production.
+- `npm update` - npm will check all packages for a newer version that satisfies your versioning constraints.
+- You can specify a single package to update as well with `npm update <package-name>`
+
+## Where does npm install the packages?
+
+- npm can install a package globally or locally. By default, the package is installed in the current file tree, in a node_modules subfolder.
+- a global package is installed with `-g` flag and installed in `npm root -g`
+- if you use `nvm` to manage node.js versions, this global location will differ
+
+## Using a package
+
+- You can import a package into your program using require. Packages are looked up with an algorithm
+- if your package is an executable, the executable file will be placed in `node_modules/.bin/` folder.
+- to execute executables, you can of course type `./node_modules/.bin/cowsay` to run it, and it works, but npx, included in the recent versions of npm (since 5.2), is a much better option. `npx cowsay` will have npx find the package location
+
+## package.json guide
+
+- The package.json file is kind of a manifest for your project.
+- It's a central repository of configuration for tools, for example. It's also where npm and yarn store the names and versions for all the installed packages.
+- There are no fixed requirements of what should be in a package.json file, for an application. The only requirement is that it respects the JSON format, otherwise it cannot be read by programs that try to access its properties programmatically.
+- if you wish to build a Node.js package and distribute it on npm, you must have a set of properties that will help other people use it.
+- The package.json file can also host command-specific configuration, for example for Babel, ESLint, and more.
+  - Each has a specific property, like eslintConfig, babel and others. Those are command-specific, and you can find how to use those in the respective command/project documentation.
+
+## package-lock.json file
+
+- The goal of the file is to keep track of the exact version of every package that is installed so that a product is 100% reproducible in the same way even if packages are updated by their maintainers.
+- The dependencies versions will be updated in the package-lock.json file when you run npm update.
+
+## Find the installed version of an npm package
+
+- `npm list` shows the latest version of all installed npm packages, including their dependencies
+- `npm list -g` is the same, but for globally installed packages.
+- To get only your top-level packages (basically, the ones you told npm to install and you listed in the package.json), run `npm list --depth=0`
+- You can get the version of a specific package by specifying its name `npm list cowsay`
+- to check the latest available version of the package on the npm repository, run `npm view [package-name] version` e.g. `npm view cowsay version`
+- to list all the previous version of a package, `npm view <package> versions`. **Note the s in versions**
+- to install a specific version: `npm install cowsay@1.2.0`
+
+## Update packages
+
+- If there is a new minor or patch release and we type `npm update`, the installed version is updated, and the package-lock.json file diligently filled with the new version; package.json remains unchanged.
+- To discover new releases of the packages, you run npm outdated
+- Running `npm update` won't update the version to that of major releases. Major releases are never updated in this way because they (by definition) introduce breaking changes.
+- To update to a new major version for all the packages, install the `npm-check-updates`
+
+## Uninstalling packages
+
+- To uninstall a package you have previously installed locally (using npm install <package-name> in the node_modules folder, run `npm uninstall <package-name>` from the project root folder (the folder that contains the node_modules folder).
+- the -S flag, or --save, this operation will also remove the reference in the package.json file.
+- use the -D / --save-dev flag to remove the listed devDependencies on package.json
+- If the package is installed globally, you need to add the -g / --global flag:
+  - you can run this command from anywhere you want on your system because the folder where you currently are does not matter.
+
+## Installing production dependencies
+
+- When you go in production, if you type npm install and the folder contains a package.json file, they are installed, as npm assumes this is a development deploy.
+- You need to set the --production flag (`npm install --production`) to avoid installing those development dependencies.
+
+## npx, Node.js Package runner
+
+- npx lets you run code built with Node.js and published through the npm registry.
+- Node.js developers used to publish most of the executable commands as global packages, in order for them to be in the path and executable immediately. As such, different versions of the same command cannot be used.
+- `npx commandname` automatically finds the correct reference of the command inside the node_modules folder of a project, without needing to know the exact path, and without requiring the package to be installed globally and in the user's path.
+- npx also allows us to run commands without installing them. It does this by downloading the code, and wiping the downloaded code when its done.
+- You can use `@` to specify the version. When paired with node.js (combine with npm node package), this can avoid tools like nvm or other node.js version management tools
+- npx is not limited to packages published on the npm registry. You can run code directly from a URL. This also means you have to be careful when you run with this.
+
+## Node.js event loop
+
+- The Node.js JavaScript code runs on a single thread. There is just one thing happening at a time.
+- it simplifies a lot how you program without worrying about concurrency issues.
+- In actuality, in most browsers there is an event loop for every browser tab, to make every process isolated and avoid a web page with infinite loops or heavy processing to block your entire browser.
+- The environment manages multiple concurrent event loops, to handle API calls for example. Web Workers run in their own event loop as well.
+
+- The call stack is a LIFO queue (Last In, First Out).
+- The event loop continuously checks the call stack to see if there's any function that needs to run. It keeps checking the call stack until the stack is empty.
+
+### The message Queue
+
+- When setTimeout() is called, the Browser or Node.js start the timer. Once the timer expires, in this case immediately as we put 0 as the timeout, the callback function is put in the Message Queue.
+- The Message Queue is also where user-initiated events like click or keyboard events, or fetch responses are queued before your code has the opportunity to react to them. Or also DOM events like onLoad.
+
+- **The loop gives priority to the call stack, and it first processes everything it finds in the call stack, and once there's nothing in there, it goes to pick up things in the message queue.**
+
+- We don't have to wait for functions like setTimeout, fetch or other things to do their own work, because they are provided by the browser, and they live on their own threads.
+  - For example, if you set the setTimeout timeout to 2 seconds, you don't have to wait 2 seconds - the wait happens elsewhere.
+
+### Job Queue
+
+- ECMAScript 2015 introduced the concept of the Job Queue, which is used by Promises (also introduced in ES6/ES2015).
+- It's a way to execute the result of an async function as soon as possible, rather than being put at the end of the call stack.
+- Promises that resolve before the current function ends will be executed right after the current function.
+
 ## Http request and response
 
 - uses the `http` module
