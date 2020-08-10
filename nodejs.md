@@ -314,7 +314,91 @@ and the importing file you can reference it with
 - It's a way to execute the result of an async function as soon as possible, rather than being put at the end of the call stack.
 - Promises that resolve before the current function ends will be executed right after the current function.
 
-## Http request and response
+### process.nextTick()
+
+- Every time the event loop takes a full trip, we call it a tick.
+- When we pass a function to process.nextTick(), we instruct the engine to invoke this function at the end of the current operation, before the next event loop tick starts
+
+```
+process.nextTick(() => {
+
+})
+```
+
+- It's the way we can tell the JS engine to process a function asynchronously (after the current function), but as soon as possible, not queue it.
+
+- `setTimeout(() => {}, 0)` will execute the function at the end of next tick;
+  `nextTick()` will executes it just before the beginning of the next tick.
+- Use `nextTick()` when you want to make sure that in the next event loop iteration that code is already executed.
+
+### setImmediate()
+
+- Any function passed as the setImmediate() argument is a callback that's executed in the next iteration of the event loop.
+- A function passed to `process.nextTick()` is going to be executed on the current iteration of the event loop, after the current operation ends. This means it will always execute before `setTimeout` and `setImmediate`.
+- A `setTimeout()` callback with a 0ms delay is very similar to `setImmediate()`. The execution order will depend on various factors, but they will be both run in the next iteration of the event loop. Basically `setImmediate()`, is equivalent to using `setTimeout(() => {}, 0)`
+
+## Timers; setInterval()
+
+- setInterval and setTimeout are available in Node.js timers module
+- setInterval starts a function every n milliseconds, without any consideration about when a function finished its execution.
+  - This means a long execution can overlap the next one
+  - To avoid this, you can schedule a recursive setTimeout to be called when the callback function finishes
+
+## Node.js Event emitter
+
+- on the browser, the user interactions are handled through events. on Node.js, its handled with events module.
+- The `EventEmitter` class handles our event.
+- eventEmitter object exposes a few methods. The notable ones being `emit` - used to trigger an event; `on` - used to add a callback
+
+```
+eventEmitter.on('start', () => {
+  console.log('started')
+})
+
+eventEmitter.emit('start')
+```
+
+- You can pass arguments to the event handler by passing them as additional arguments to emit()
+
+## Http module
 
 - uses the `http` module
+- We use the module to create an HTTP server.
+- The server is set to listen on the specified port, 3000.
+- When the server is ready, the listen callback function is called.
+
+```
+const http = require('http')
+
+const port = process.env.PORT
+
+const server = http.createServer((req, res) => {
+  res.statusCode = 200
+  res.setHeader('Content-Type', 'text/html')
+  res.end('<h1>Hello, World!</h1>')
+})
+
+server.listen(port, () => {
+  console.log(`Server running at port ${port}`)
+})
+```
+
+- The callback function we pass to `http.createServer` is the one that's going to be executed upon every request that comes in
+- Whenever a new request is received, the `request` event is called
 - When a new request is received, the request event is called, providing two objects: a request (an http.IncomingMessage object) and a response (an http.ServerResponse object).
+- when you initialize the HTTP server using http.createServer(), the callback is called when the server got all the HTTP headers, but not the request body.
+- The request object passed in the connection callback is a stream. This means we have to listen for the body content
+- We first get the data by listening to the stream data events, and when the data ends, the stream end event is called
+- to access the data, assuming we expect to receive a string, we must put it into an array
+
+```
+const server = http.createServer((req, res) => {
+  let data = []
+  req.on('data', chunk => {
+    data.push(chunk)
+  })
+  req.on('end', () => {
+    JSON.parse(data).todo // 'Buy the milk'
+  })
+})
+```
