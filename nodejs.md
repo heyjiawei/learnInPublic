@@ -402,3 +402,262 @@ const server = http.createServer((req, res) => {
   })
 })
 ```
+
+The HTTP module provides 5 classes:
+
+1. http.Agent
+2. http.ClientRequest
+3. http.Server
+4. http.ServerResponse
+5. http.IncomingMessage
+
+### http.Agent
+
+- Node.js creates a global instance of the http.Agent class to manage connections persistence and reuse for HTTP clients, a key component of Node.js HTTP networking.
+- This object makes sure that every request made to a server is queued and a single socket is reused.
+- It also maintains a pool of sockets. This is key for performance reasons
+
+### http.ClientRequest
+
+- An http.ClientRequest object is created when http.request() or http.get() is called.
+- When a response is received, the response event is called with the response, with an http.IncomingMessage instance as argument.
+- The returned data of a response can be read in 2 ways:
+  1. you can call the response.read() method
+  2. in the response event handler you can setup an event listener for the data event, so you can listen for the data streamed into.
+
+### http.IncomingMessage
+
+- An http.IncomingMessage object is created by:
+
+  1. http.Server when listening to the request event
+  2. http.ClientRequest when listening to the response event
+
+- It can be used to access the response
+- The data is accessed using streams, since http.IncomingMessage implements the Readable Stream interface.
+
+### http.Server
+
+- This class is commonly instantiated and returned when creating a new server using http.createServer().
+- Once you have a server object, you have access to its methods:
+  - close() stops the server from accepting new connections
+  - listen() starts the HTTP server and listens for connections
+
+### http.ServerResponse
+
+- Created by an http.Server and passed as the second parameter to the request event it fires. Commonly known and used in code as res.
+- The method you'll always call in the handler is `end()`, which closes the response, the message is complete and the server can send it to the client. It must be called on each response.
+- After processing the headers you can send them to the client by calling `response.writeHead()`, which accepts the statusCode as the first parameter, the optional status message, and the headers object.
+- To send data to the client in the response body, you use `write()`. It will send buffered data to the HTTP response stream.
+
+## File descriptors
+
+- A file descriptor is what's returned by opening the file using the open() method offered by the fs module
+
+```
+const fs = require('fs')
+
+fs.open('/Users/joe/test.txt', 'r', (err, fd) => {
+  //fd is our file descriptor
+})
+```
+
+- Every file comes with a set of details that we can inspect; we can inspect using the stat() method provided by the fs module
+- Information in file stats:
+
+  - if the file is a directory or a file, using stats.isFile() and stats.isDirectory()
+  - if the file is a symbolic link using stats.isSymbolicLink()
+  - the file size in bytes using stats.size.
+
+### Reading and writing files
+
+- Read file with `fs.readFile()`
+- Both `fs.readFile()` and `fs.readFileSync()` read the full content of the file in memory before returning the data. This means that big files are going to have a major impact on your memory consumption and speed of execution of the program. In this case, a better option is to read the file content using streams.
+- other fs operations (like writeFile) works similarly. They write the full content to the file before returning the control back to your program. In this case, a better option is to read the file content using streams.
+
+### Working with folders
+
+- Use `fs.access()` to check if the folder exists and Node.js can access it with its permissions.
+- Removing a folder that has content can be more complicated. It is recommended to install the `fs-extra` module, which is very popular and well maintained. It's a drop-in replacement of the fs module, which provides more features on top of it.
+
+## File path
+
+- This is the path module
+- Every file in the system has a path. Linux and macOS file path is different from Windows.
+- Given a path, you can extract information out of it using those methods:
+  - dirname: get the parent folder of a file
+  - basename: get the filename part
+  - extname: get the file extension
+- You can get the file name without the extension by specifying a second argument to basename
+  `path.basename(notes, path.extname(notes))`
+- join two or more parts of a path by using `path.join()`; `path.join('/', 'users', name, 'notes.txt')`
+- get the absolute path calculation of a relative path using `path.resolve()`;
+  `path.resolve('joe.txt') //'/Users/joe/joe.txt' if run from my home folder`
+- If you specify a second parameter folder, resolve will use the first as a base for the second:`path.resolve('tmp', 'joe.txt') //'/Users/joe/tmp/joe.txt' if run from my home folder`
+- If the first parameter starts with a slash, that means it's an absolute path; `path.resolve('/etc', 'joe.txt') //'/etc/joe.txt'`
+- use `path.normalize()` to calculate the actual path, when it contains relative specifiers like . or .., or double slashes; `path.normalize('/users/joe/..//test.txt') ///users/test.txt`
+- Both resolve and normalize will not check if the path exists. They just calculate a path based on the information they got
+
+## os Module
+
+- the os module is a built-in core module. This module provides many functions that you can use to retrieve information from the underlying operating system and the computer the program runs on, and interact with it.
+- `os.EOL` gives the line delimiter sequence. It's \n on Linux and macOS, and \r\n on Windows.
+- `os.constants.signals` tells us all the constants related to handling process signals, like SIGHUP, SIGKILL and so on.
+- `os.constants.errno` sets the constants for error reporting, like EADDRINUSE, EOVERFLOW and more.
+- `os.arch()` Return the string that identifies the underlying architecture, like arm, x64, arm64.
+- `os.cpus()` Return information on the CPUs available on your system.
+
+## Buffers
+
+- implemented by Buffer class
+- Buffers were introduced to help developers deal with binary data, in an ecosystem that traditionally only dealt with strings rather than binaries.
+- It represents a fixed-size chunk of memory (can't be resized) allocated outside of the V8 JavaScript engine.
+- You can think of a buffer like an array of integers, which each represent a byte of data.
+
+## Streams
+
+- They are a way to handle reading/writing files, network communications, or any kind of end-to-end information exchange in an efficient way.
+- Streams are not a concept unique to Node.js. They were introduced in the Unix operating system decades ago, and programs can interact with each other passing streams through the pipe operator
+- Using streams you process its content without keeping it all in memory.
+- The Node.js stream module provides the foundation upon which all streaming APIs are built.
+- All streams are instances of EventEmitter
+
+There are four classes of streams:
+
+- Readable: a stream you can pipe from, but not pipe into (you can receive data, but not send data to it). When you push data into a readable stream, it is buffered, until a consumer starts to read the data.
+- Writable: a stream you can pipe into, but not pipe from (you can send data, but not receive from it)
+- Duplex: a stream you can both pipe into and pipe from, basically a combination of a Readable and Writable stream
+- Transform: a Transform stream is similar to a Duplex, but the output is a transform of its input
+
+- We get the Readable stream from the stream module. Then we initialize it and implement the readable.\_read() method.
+
+First create a stream object:
+
+```
+const Stream = require('stream')
+const readableStream = new Stream.Readable()
+```
+
+then implement \_read:
+
+```
+readableStream._read = () => {}
+```
+
+You can also implement \_read using the read option:
+
+```
+const readableStream = new Stream.Readable({
+  read() {}
+})
+```
+
+Now that the stream is initialized, we can send data to it:
+
+```
+readableStream.push('hi!')
+readableStream.push('ho!')
+```
+
+### Read data from a readable stream
+
+- To read data from a readable stream, you need to use a writable stream:
+
+```
+const Stream = require('stream')
+
+const readableStream = new Stream.Readable({
+  read() {}
+})
+const writableStream = new Stream.Writable()
+
+writableStream._write = (chunk, encoding, next) => {
+  console.log(chunk.toString())
+  next()
+}
+
+readableStream.pipe(writableStream)
+
+readableStream.push('hi!')
+readableStream.push('ho!')
+```
+
+- You can also consume a readable stream directly, using the readable event:
+
+```
+readableStream.on('readable', () => {
+  console.log(readableStream.read())
+})
+```
+
+### Signal to a writable stream that you have ended writing
+
+- use `end()` method
+
+```
+const Stream = require('stream')
+
+const readableStream = new Stream.Readable({
+  read() {}
+})
+const writableStream = new Stream.Writable()
+
+writableStream._write = (chunk, encoding, next) => {
+  console.log(chunk.toString())
+  next()
+}
+
+readableStream.pipe(writableStream)
+
+readableStream.push('hi!')
+readableStream.push('ho!')
+
+writableStream.end()
+```
+
+## Node.js difference between development and production
+
+- Node.js assumes it's always running in a development environment.
+- You can signal Node.js that you are running in production by setting the `NODE_ENV=production`s environment variable.
+- in your production server, it's better to put it in your shell configuration file (e.g. .bash_profile with the Bash shell) because otherwise the setting does not persist in case of a system restart.
+- You can also apply the environment variable by prepending it to your application initialization command:
+
+```
+NODE_ENV=production node app.js
+```
+
+- Setting the environment to production generally ensures that logging is kept to a minimum, essential level; more caching levels take place to optimize performance
+
+## Error handling
+
+- An exception is created using the throw keyword: `throw value`
+- As soon as JavaScript executes this line, the normal program flow is halted and the control is held back to the nearest exception handler.
+- Usually in client-side code value can be any JavaScript value including a string, a number or an object; in Node.js, we don't throw strings, we just throw Error objects.
+- An error object is an object that is either an instance of the Error object, or extends the Error class, provided in the Error core module
+
+```
+throw new Error('Ran out of coffee')
+```
+
+or
+
+```
+class NotEnoughCoffeeError extends Error {
+  //...
+}
+throw new NotEnoughCoffeeError()
+```
+
+- If an uncaught exception gets thrown during the execution of your program, your program will crash.
+- To solve this, you listen for the uncaughtException event on the process object:
+
+```
+process.on('uncaughtException', err => {
+  console.error('There was an uncaught error', err)
+  process.exit(1) //mandatory (as per the Node.js docs)
+})
+```
+
+## logging
+
+- In Node.js, printing a JSON object to terminal is fine until a certain level of nesting. After two levels of nesting, Node.js gives up and prints [Object] as a placeholder
+- To preserve and print the whole object, use pretty print: `console.log(JSON.stringify(obj, null, 2))`
