@@ -359,6 +359,8 @@ eventEmitter.emit('start')
 ```
 
 - You can pass arguments to the event handler by passing them as additional arguments to emit()
+- When the EventEmitter object emits an event, all of the functions attached to that specific event are called synchronously
+- Any values returned by the called listeners are ignored and will be discarded
 
 ## Http module
 
@@ -661,3 +663,132 @@ process.on('uncaughtException', err => {
 
 - In Node.js, printing a JSON object to terminal is fine until a certain level of nesting. After two levels of nesting, Node.js gives up and prints [Object] as a placeholder
 - To preserve and print the whole object, use pretty print: `console.log(JSON.stringify(obj, null, 2))`
+
+## child processes
+
+- child_process module provides the ability to spawn child processes in a manner that is similar, but not identical, to popen(3).
+
+  - popen: on success, returns a pointer to an open stream that can be used to read or write to the pipe;
+  - This capability is primarily provided by the `child_process.spawn()` function
+
+- A “process” is what we call a program that has been loaded into memory along with all the resources it needs to operate.
+- Those processes can easily communicate with each other using a built-in messaging system.
+- When a user executes a single Node.js program, it runs as a single OS process that represents the instance of the program running. Within that process, Node.js executes programes on a single thread. Because only one thread can run on one process, operations that a long time to execute in JavaScript can block the Node.js thread.
+
+  - To work around this problem, we launch a child process; a process created by another process.
+  - When a new process is launched, the OS employs multiprocessing techniques to ensure that the main Node.js process and the additional child process runs concurrently (that is, at the same time)
+
+- Aside from dealing with long-running takss, child processes also interface with the OS and can run shell commands.
+
+  - This means system administrators can use Node.js to run shell commands to structure and maintain their operations as a Node.js module instead of shell scripts.
+
+- By default, pipes for stdin, stdout, and stderr are established between the parent Node.js process and the spawned child.
+
+  - If the child process writes to stdout in excess of that limit without the output being captured, the child process will block waiting for the pipe buffer to accept more data. ??
+
+- (shell?) command lookup will be performed with `options.env.PATH environment` variable if passed in options object. otherwise `process.env.PATH` will be used.
+
+- The `child_process.spawn()` method spawns the child process asynchronously, without blocking the Node.js event loop. The `child_process.spawnSync()` function provides equivalent functionality in a synchronous manner that blocks the event loop until the spawned process either exits or is terminated.
+
+- The following alternatives of spawning child processes are implemented on top of `child_process.spawn()` and `child_process.spawnSync()`
+
+  - child_process.exec()
+    - Spawns a shell then executes the command within that shell, buffering any generated output
+    - pass stdout and stderr to a callback function when complete
+  - child_process.execFile()
+    - spawns the command directly without first spawning a shell by default.
+    - pass stdout and stderr to a callback function when complete.
+  - child_process.fork()
+    - spawns a new Node.js process and the returned ChildProcess will have an additional communication channel built-in that allows messages to be passed back and forth between the parent and child.
+
+- The main difference is the spawn is more suitable for long-running process with huge output. spawn streams input/output with child process. exec buffered output in a small (by default 200K) buffer.
+
+  - use spawn in case you need a lot of data streamed from child process
+  - use exec if you need such features as shell pipes, redirects or even you need exec more than one program in one time.
+
+- For certain use cases, such as automating shell scripts, the synchronous counterparts may be more convenient. In many cases, however, the synchronous methods can have significant impact on performance due to stalling the event loop while spawned processes complete.
+
+- Keep in mind that spawned Node.js child processes are independent of the parent with exception of the IPC communication channel that is established between the two. Each process has its own memory, with their own V8 instances.
+
+  - Because of the additional resource allocations required, spawning a large number of child Node.js processes is not recommended.
+
+- child_process.spawn(), child_process.fork(), child_process.exec(), and child_process.execFile() methods returns a ChildProcess instance. These objects implement the Node.js EventEmitter API
+  - This means parent process can register listener functions that are called when certain events occur during the life cycle of the child process.
+- The child_process.exec() and child_process.execFile() methods additionally allow for an optional callback function to be specified that is invoked when the child process terminates.
+- Child processes have three standard IO streams available: stdin (writeable), stdout (readable) and stderr (readable).
+  - Streams also inherit from EventEmitter
+
+## process node.js
+
+- the process object is a global; it is always available to Node.js apps without the use of require()
+- it provides information about the current Node.js. It also controls the current Node.js process.
+
+- `process.mainModule` is an alternative way of retrieving `require.main`
+  - if the main module changes at runtime, `require.main` may still refer to the original main module in modules that were required before the change occur.
+  - Generally, it's safe to assume that the two refer to the same module.
+- As with require.main, process.mainModule will be undefined if there is no entry script.
+
+## modules node.js
+
+- each file is treated as a separate module.
+- Variables local to the module will be private, because the of commonjs module wrapper.
+
+- when a file is run directly from Node.js, `require.main` is set to its module.
+  - it is possible to determine whether a file has been run directly by testing `require.main === module`.
+  - That means, for a file foo.js, this will be true if run via `node foo.js`, but false if run by `require('./foo')`.
+  - the entry point of the current application can be obtained by checking `require.main.filename`.
+
+### module wrapper
+
+- Before a module's code is executed, Node.js will wrap it with a function wrapper that looks like the following:
+
+```
+(function(exports, require, module, __filename, __dirname) {
+// Module code actually lives in here
+});
+```
+
+When a module is wrapped,
+
+1. It keeps top-level variables (defined with var, const or let) scoped to the module rather than the global object.
+2. It helps to provide some global-looking variables that are actually specific to the module, such as:
+
+- The module and exports objects that the implementor can use to export values from the module.
+- The convenience variables `__filename` and `__dirname`, containing the module's absolute filename and directory path.
+
+### module caching
+
+- Modules are cached after the first time they are loaded.
+  - This means (among other things) that every call to require('foo') will get exactly the same object returned, **if it would resolve to the same file.**
+  - Multiple calls to require('foo') may not cause the module code to be executed multiple times. This is an important feature. With it, "partially done" objects can be returned, thus allowing transitive dependencies to be loaded even when they would cause cycles.
+- To have a module execute code multiple times, export a function, and call that function.
+
+- Modules are cached based on their resolved filename. Since modules may resolve to a different filename based on the location of the calling module (loading from node_modules folders), it is not a guarantee that require('foo') will always return the exact same object, if it would resolve to different files.
+
+- Additionally, on case-insensitive file systems or operating systems, different resolved filenames can point to the same file, but the cache will still treat them as different modules and will reload the file multiple times.
+
+### core modules
+
+- core modules are defined within Node.js's source; they are located in `lib/` folder
+- Core modules are always preferentially loaded if their identifier is passed to require(). For instance, require('http') will always return the built in HTTP module, even if there is a file by that name.
+
+### Cycles
+
+- When there are circular require() calls, a module might not have finished executing when it is returned.
+- When main.js loads a.js, then a.js in turn loads b.js. At that point, b.js tries to load a.js.
+  - In order to prevent an infinite loop, an unfinished copy of the a.js exports object is returned to the b.js module. b.js then finishes loading, and its exports object is provided to the a.js module.
+- Careful planning is required to allow cyclic module dependencies to work correctly within an application.
+
+### File modules
+
+- If the exact filename is not found, then Node.js will attempt to load the required filename with the added extensions: .js, .json, and finally .node.
+
+  - `.node` files are interpreted as compiled addon modules loaded with `dlopen`.
+
+- A required module prefixed with '/' is an absolute path to the file. For example, `require('/home/marco/foo.js')` will load the file at `/home/marco/foo.js`.
+
+- A required module prefixed with './' is relative to the file calling `require()`. That is, circle.js must be in the same directory as foo.js for `require('./circle')` to find it.
+
+- Without a leading '/', './', or '../' to indicate a file, the module must either be a core module or is loaded from a node_modules folder.
+
+- If the given path does not exist, require() will throw an Error with its code property set to 'MODULE_NOT_FOUND'.
