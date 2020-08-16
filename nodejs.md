@@ -808,3 +808,49 @@ When a module is wrapped,
 - Without a leading '/', './', or '../' to indicate a file, the module must either be a core module or is loaded from a node_modules folder.
 
 - If the given path does not exist, require() will throw an Error with its code property set to 'MODULE_NOT_FOUND'.
+
+## Make our JavaScript file executable by the locally installed node program
+
+- We do that adding a shebang character sequence at the very top of our JavaScript file that look as follow:
+  `#!/usr/bin/env node`
+
+  - That way, we are telling \*nix systems that the interpreter of our JavaScript file should be /usr/bin/env node which looks up for the locally-installed node executable.
+  - In Windows, that line will just be ignored because it will be interpreted as a comment, **but** it has to be there because npm will read it on a Windows machine when the NodeJS command-line package is being installed.
+
+- In most cases, new files are not allowed to be executed. As we are creating a NodeJS command-line script that will be executed, we need to modify its file permissions. In a \*nix system you can do that as follows:
+  `chmod +x <filename>.js # Make the file executable`
+
+- map a command-line script to a command name with package.json `bin` field (supply a bin field in your package.json which is a map of command name to local file name.)
+
+Let say we want our cli.js command-line file to be mapped to say-hello. We can do that by modifying our package.json and adding a bin field as follows:
+
+```
+//package.json
+{
+  "bin": {
+    "say-hello": "./cli.js"
+  }
+}
+```
+
+- the keys become the command names, and the values are the NodeJS command-line script files mapped. That format allows us as developers to provide more than one script mapping.
+- However, if we want to provide a single NodeJS command-line script with the same name as its file, we could just set a string instead of an object where the string would be the local file path.
+
+  - We can choose any name for a command, but we do not want it to clash with existing popular command names such as ls, cd, dir and so on. If we use one existing name chances are it will not be executed, but instead the already installed one (results may vary).
+
+- Then use `npm link` command to locally symlink a package folder. It will locally install any command listed in the bin field of our package.json
+- Once executed, we will see our command being symlinked globally. Now, we can execute our NodeJS command-line script with its own "command name" `say-hello`
+
+### More on npm link
+
+- Under the hood, `npm link` (also applies to `npm install`) symlink all files specified in the `bin` field of package.json
+
+  - according to npm docs:
+
+    > On install, npm will symlink […] file[s] into prefix/bin for global installs, or ./node_modules/.bin/ for local installs.
+
+  - On \*nix systems, the npm linking process is like creating a shortcut to our specified command file, which will be executed by the shell and then by node as specified with the shebang (#!/usr/bin/env node).
+  - While on Windows, npm will do the same (only if the shebang is specified) but will also create a {command-name}.cmd that calls node to execute our specified command file.
+
+- When we finish to test our symlinked command, we may want to remove it. We can achieve that by running the following code from inside the package directory.
+  `npm unlink`
