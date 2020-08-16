@@ -728,6 +728,22 @@ process.on('uncaughtException', err => {
   - Generally, it's safe to assume that the two refer to the same module.
 - As with require.main, process.mainModule will be undefined if there is no entry script.
 
+### process I/O
+
+- `process.stdout` and `process.stderr` differ from other Node.js streams in important ways:
+
+1. They are used internally by console.log() and console.error(), respectively.
+2. Writes may be synchronous depending on what the stream is connected to and whether the system is Windows or POSIX:
+
+- Files: synchronous on Windows and POSIX
+- TTYs (Terminals): asynchronous on Windows, synchronous on POSIX
+- Pipes (and sockets): synchronous on Windows, asynchronous on POSIX
+
+- These behaviors are partly for historical reasons, as changing them would create backwards incompatibility, but they are also expected by some users.
+
+- Asynchronous writes might not be desired all the time as creates problems such as output written with console.log() or console.error() being unexpectedly interleaved.
+- Asynchronous writes also has the problem of not written to logs at all if process.exit() is called before an asynchronous write completes
+
 ## modules node.js
 
 - each file is treated as a separate module.
