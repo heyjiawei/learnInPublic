@@ -221,3 +221,178 @@ nspell contains most of the essential core of Hunspell. It does not contain a to
 # jest-matchmedia-mock
 
 This implementation of the window.matchMedia method allows you to control your media queries and their listening functions. You can update the media query that is currently applied to the document by simply calling one function.
+
+# @babel/code-frame
+
+Gives you this nice formatted error output:
+
+```
+  1 | class Foo {
+> 2 |   constructor() {
+    |                 ^
+> 3 |     console.log("hello");
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 4 |   }
+    | ^^^
+  5 | };
+```
+
+# better-opn
+
+Reuse the same tab on Chromium-based browsers on macOS
+
+# clipboardy
+
+Access the system clipboard (copy/paste)
+Cross-platform. Supports: macOS, Windows, Linux, OpenBSD, FreeBSD, Android with Termux, modern browsers.
+
+# common-tags
+
+-A set of well-tested, commonly used template literal tag functions for use in ES2015+.
+
+Plus some extra goodies for easily making your own tags.
+
+Tagged templates in ES2015 are a welcome feature. But, they have their downsides. One such downside is that they preserve all whitespace by default - which makes multiline strings in source code look terrible.
+
+common-tags also exposes a means of composing pipelines of dynamic transformer plugins. As someone with a little experience writing tagged templates, I can admit that it is often the case that one tag might need to do the same thing as another tag before doing any further processing; for example - a typical tag that renders out HTML could strip initial indents first, then worry about handling character escapes. Both steps could easily be useful as their own separate template tags, but there isn't an immediately obvious way of composing the two together for maximum re-use. common-tags offers not one, but two ways of doing this.
+
+# configstore
+
+Easily load and persist config without having to think about where and how
+
+# conf
+
+Simple config handling for your app or module
+All you have to care about is what to persist. This module will handle all the dull details like where and how.
+
+# convert-hrtime
+
+Convert the result of process.hrtime() to seconds, milliseconds, nanoseconds
+
+# envinfo
+
+envinfo generates a report of the common details needed when troubleshooting software issues, such as your operating system, binary versions, browsers, installed languages, and more
+
+It aims to provide information to solve these problems by gathering all of this information in one spot, quickly, and painlessly:
+
+It works on my computer
+"command not found"
+what version of "command" are you running?
+what version of "different command" are you running?
+do you have "insert obscure android sdk version"?
+every github issue reporting template ever:
+
+# execa
+
+This package improves child_process methods with:
+
+- Promise interface.
+- Strips the final newline from the output so you don't have to do stdout.trim().
+- Supports shebang binaries cross-platform.
+- Improved Windows support.
+- Higher max buffer. 100 MB instead of 200 KB.
+- Executes locally installed binaries by name.
+- Cleans up spawned processes when the parent process dies.
+- Get interleaved output from stdout and stderr similar to what is printed on the terminal. (Async only)
+- Can specify file and arguments as a single string without a shell
+- More descriptive errors.
+
+# is-ci-cli
+
+Run different npm scripts in a CI environment
+
+# hosted-git-info
+
+This will let you identify and transform various git hosts URLs between protocols. It also can tell you what the URL is for the raw path for particular file for direct access without git.
+
+Currently this supports Github, Bitbucket and Gitlab
+
+# Ink
+
+Ink provides the same component-based UI building experience that React offers in the browser, but for command-line apps. It uses Yoga to build Flexbox layouts in the terminal, so most CSS-like props are available in Ink as well. If you are already familiar with React, you already know Ink.
+
+# ink-spinner
+
+Spinner component for Ink. Uses cli-spinners for the collection of spinners.
+
+# cli-spinners
+
+The list of spinners is just a JSON file and can be used wherever.
+
+# meant
+
+Like the Did you mean? in git for npm
+
+# node-fetch
+
+A light-weight module that brings window.fetch to Node.js
+
+Instead of implementing XMLHttpRequest in Node.js to run browser-specific Fetch polyfill, why not go from native http to fetch API directly? Hence node-fetch, minimal code for a window.fetch compatible API on Node.js runtime.
+
+# opentracing
+
+This library is a JavaScript implementation of Open Tracing API. It is intended for use both on the server and in the browser.
+
+To fully understand this platform API, it's helpful to be familiar with the OpenTracing project and terminology more specifically.
+
+## What is OpenTracing
+
+OpenTracing is comprised of an API specification, frameworks and libraries that have implemented the specification, and documentation for the project. OpenTracing allows developers to add instrumentation to their application code using APIs that do not lock them into any one particular product or vendor.
+
+It is probably easier to start with what OpenTracing is NOT.
+
+- OpenTracing is not a download or a program. Distributed tracing requires that software developers add instrumentation to the code of an application, or to the frameworks used in the application.
+
+- OpenTracing is not a standard. The Cloud Native Computing Foundation (CNCF) is not an official standards body. The OpenTracing API project is working towards creating more standardized APIs and instrumentation for distributed tracing.
+
+OpenTracing aids Distributed Tracing
+
+## What is Distributed Tracing
+
+Distributed tracing, also called distributed request tracing, is a method used to profile and monitor applications, especially those built using a microservices architecture. Distributed tracing helps pinpoint where failures occur and what causes poor performance.
+
+# pretty-error
+
+A small tool to see node.js errors with less clutter which is more readable compared to node's unformatted errors
+
+# progress
+
+Flexible ascii cli progress bar.
+
+# prompts
+
+Lightweight, beautiful and user-friendly interactive prompts.
+
+# resolve-cwd
+
+Resolve the path of a module like require.resolve() but from the current working directory
+
+# signal-exit
+
+When you want to fire an event no matter how a process exits:
+
+- reaching the end of execution.
+- explicitly having process.exit(code) called.
+- having process.kill(pid, sig) called.
+- receiving a fatal signal from outside the process
+
+# source-map
+
+This is a library to generate and consume the source map format from Source Map Revision 3 Proposal
+
+# stack-trace
+
+Get v8 stack traces as an array of CallSite objects.
+
+# strip-ansi
+
+strip ANSI escape codes from a string
+
+# update-notifier
+
+Update notifications (UI) for your CLI app
+
+# yurnalist
+
+An elegant console reporter, borrowed from Yarn.
+Pretty console output makes developers happy and Yarn is doing a nice job. Yurnalist takes the internal console reporter code from Yarn and makes it available for use in other Node.js applications.
