@@ -73,7 +73,7 @@ YAML Ain't Markup Language, it is a human friendly data serialization standard f
 
 # lerna
 
-A tool for managing JavaScript projects with multiple packages.
+Lerna is a tool that optimizes the workflow around managing multi-package repositories with git and npm. Internally it uses Yarn or the npm CLI to bootstrap (i.e. install all third party dependencies for each package) a project. In a nutshell, Lerna calls yarn/npm install for each package inside the project and then creates symlinks between the packages that refer each other.
 
 # lint-staged
 
