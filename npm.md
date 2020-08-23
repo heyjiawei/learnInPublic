@@ -1,4 +1,5 @@
-npm-link (or yarn link)
+# npm-link (or yarn link)
+
 alias: npm ln
 
 - useful when you are simultaneously working on an Application and the Dependency used by the Application.
@@ -28,3 +29,18 @@ alias: npm ln
 - This cleans up the global link
 
 - If you switch branches, you will need to link your packages again
+
+# package.json files property
+
+- The optional files field is an array of file patterns
+- It describes the entries to be included when your package is installed as a dependency.
+- File patterns follow a similar syntax to .gitignore, but reversed in the sense that
+
+  - including a file, directory, or glob pattern (\_, `**`, and such) will make it so that file is included in the tarball when it’s packed
+  - Omitting the field will make it default to ["*"], which means it will include all files.
+
+- You can also provide a .npmignore file in the root of your package or in subdirectories, which will keep files from being included.
+- Files included with the “package.json#files” field cannot be excluded through .npmignore or .gitignore.
+- At the root of your package it will not override the “files” field, but in subdirectories it will.
+
+- The .npmignore file works just like a .gitignore. If there is a .gitignore file, and .npmignore is missing, .gitignore’s contents will be used instead.
