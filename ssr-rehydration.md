@@ -111,6 +111,31 @@ their implementation relies on instantiating separate React trees (??) for each 
 
 2. React does not play well with other third party scripts that inject content within its tree, such as Google's ad script. Progressive hydration exacerbates this further, because React is very aggressive about removing content it does not recognize during hydration, which is now performed later after the third party content has probably already been injected. Extra care must be taken to prevent such deletion.
 
+### Shopify
+
+- in quilt project, package [react-hydrate](https://www.npmjs.com/package/@shopify/react-hydrate)
+- Typically, doing different work on the server and client would result in the server markup being thrown out by React’s initial reconciliation.
+- This library avoids that issue by
+
+  1.  rendering a wrapping div around the content on the server
+  2.  adding an ID to that element, and setting the dangerouslySetInnerHTML prop on the client to the resulting server markup in order to avoid mismatches
+
+- Once you have done whatever work on the client to load the necessary components, this hardcoded markup is removed, allowing the React tree to take over.
+
 - Partial rehydration
   - built on top of progressive rehydration
   - individual pieces (components / views / trees) to be progressively rehydrated are analyzed and those with little interactivity or no reactivity are identified. For each of these mostly-static parts, the corresponding JavaScript code is then transformed into inert references and decorative functionality, reducing their client-side footprint to near-zero.
+
+## React concepts to understand before proceeding forward
+
+- ReactDOM.hydrate
+- suppressHydrationWarning
+- what is react's default way of hydration
+- what happens when you pass props to a `<div />`
+- what does it mean that the diff work on server and client would result in server mark up being thrown out by React's initial reconciliation
+- Why hydrate the root content first
+- What does it mean that partial hydration works on top of Suspense fallback API
+- what is a frame
+- what is a commit
+- what is concurrent mode
+- why is the connection between the store and hydration
