@@ -92,3 +92,58 @@
 - \_checkForMissingMandatoryOptions. It walks up the hierarchy of commands and for each option of a command, if the option is mandatory but it does not have a value provided to it, call missingMandatoryOptionValue. It does not tell you which command's required option is not specified. It just tells you that the required option is not specified. It then proceeds to exit the program with exit code 1
 
 - otherwise, finds the executable file, spawn a child process and run the executable on child process. Handles child process termination when parent process is terminated too. Need to look into this further(??)
+
+# \_parseExpectedArgs(args)
+
+- called in `command()` and `program.arguments()`
+- args is an array of string, split by space character
+
+- For loop; loops each arg
+
+  - create argDetails with the following object shape:
+
+  ```
+  {
+    required: false,
+    name: "",
+    variadic: false
+  }
+  ```
+
+  - check if the first character of arg is `<` or `[`
+    - assign name
+    - assign required if `<`
+  - check if name is filled and if arg is variadic
+    - re-assign name
+    - assign variadic
+  - check if name is filled
+    - push argDetails into `this._args`
+
+- check if variadic args in `this._args` are last arguments
+  - there can only be **1** variadic argument and
+    it must be the last argument otherwise it will
+    throw an error
+
+# action(fn)
+
+- create a callback/listener/handler that does the following:
+
+  - create a shallow copy of `this._args` and store it in actionArgs
+  - if \_passCommandToAction, set actionArgs[argsCount] to command object
+  - otherwise, set actionArgs[argsCount] to command object options (object containing options as key-value pairs).
+
+  - call fn(actionArgs)
+  - traverse to root command and add actionResult to root command's `_actionResult`
+
+- set `this._actionHandler` to this callback/listener/handler
+
+# .storeOptionsAsProperties(bool)
+
+- Whether to store option values as properties on command object, or store separately (specify false).
+- In both cases the option values can be accessed using .opts().
+
+- set `this._storeOptionsAsPropertiesCalled` internally. By default, `this._storeOptionsAsPropertiesCalled` is false
+
+# .passCommandToAction(bool)
+
+- Whether to pass command to action handler, or just the options (specify false).
