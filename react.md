@@ -50,6 +50,92 @@ Its main goals are:
 - Ability to return multiple elements from render().
 - Better support for error boundaries.
 
+### Scheduling
+
+the process of determining when work should be performed. Precisely these:
+
+- pause work and come back to it later.
+- assign priority to different types of work.
+- reuse previously completed work.
+- abort work if it's no longer needed.
+
+### Work
+
+- any computations that must be performed. Work is usually the result of an update (e.g. setState).
+
+### Fiber
+
+- A fiber represents a unit of work.
+- You can think of a single fiber as a virtual stack frame.
+- In concrete terms, a fiber is a JavaScript object that contains information about a component, its input, and its output.
+
+Fields within a Fiber object:
+
+- The **type** and **key** of a fiber serve the same purpose as they do for React elements
+
+  - The type of a fiber describes the component that it corresponds to. For composite components, the type is the function or class component itself. For host components (div, span, etc.), the type is a string.
+  - the key is used during reconciliation to determine whether the fiber can be reused.
+
+  Conceptually, the type is the function (as in v = f(d)) whose execution is being tracked by the stack frame. (??)
+
+- **child** and **sibling**. These fields point to other fibers, describing the recursive tree structure of a fiber
+
+  - The **child** fiber of Parent component corresponds to Child component. You can think of this as 2 nodes. One node is the parent node and the other is the child node. The parent node has a pointer (named child) that points to this child node.
+  - **sibling** is how child node points to its sibling child node.
+
+- **return** field (contains or points?) is program should return after processing the current one.
+
+  - It is conceptually the same as the return address of a stack frame.
+  - It can also be thought of as the parent fiber. If a fiber has multiple child fibers, each child fiber's return fiber is the parent.
+
+- **pendingProps** and **memoizedProps**
+
+  - Conceptually, props are the arguments of a function.
+  - A fiber's pendingProps are set at the beginning of its execution, and memoizedProps are set at the end.
+  - When the incoming pendingProps are equal to memoizedProps, it signals that the fiber's previous output can be reused, preventing unnecessary work.
+
+- **pendingWorkPriority**
+
+  - A number indicating the priority of the work represented by the fiber.
+  - NoWork is 0
+  - a larger number indicates a lower priority
+  - The scheduler uses the priority field to search for the next unit of work to perform.
+
+- **alternate** (means every other second or so)
+
+  - flush: To flush a fiber is to render its output onto the screen.
+  - work-in-progress: A fiber that has not yet completed; conceptually, a stack frame which has not yet returned.
+
+  There are 3 types of fibre; you can think of them as states
+
+  1. current fiber
+  2. flushed fiber
+  3. work-in-progress fiber
+
+  - At any time, a component instance has at most two fibers.
+  - The alternate of the current fiber is the work-in-progress, and the alternate of the work-in-progress is the current fiber.
+  - A fiber's alternate is created lazily using a function called cloneFiber
+    - Rather than always creating a new object, cloneFiber will attempt to reuse the fiber's alternate if it exists, minimizing allocations.
+
+- **output**
+  - Conceptually, the output of a fiber is the return value of a function.
+  - Every fiber eventually has output, but output is created only at the leaf nodes by host components. The output is then transferred up the tree.
+    - host component: The leaf nodes of a React application. They are specific to the rendering environment (e.g., in a browser app, they are `div`, `span`, etc.). In JSX, they are denoted using lowercase tag names.
+  - The output is what is eventually given to the renderer
+
+### Stack Frame
+
+- When a function is executed, a new stack frame is added to the (call) stack. That stack frame represents the work that is performed by that function.
+
+### The problem
+
+JavaScript relies on the call stack - it will keep doing work until the stack is empty. To have more control over rendering work, you need a way to break rendering work into incremental units.
+
+Fibre Reconciler aims to reimplement the call stack to optimize for rendering UIs. It intends to implement a call stack such that it can interrupt its own call stack at will and manipulate stack frames manually
+
+- reimplementing the stack means that you can keep stack frames in memory and execute them however (and whenever) you want.
+- manually dealing with stack frames unlocks the potential for features such as concurrency and error boundaries.
+
 # Event System
 
 - React implements a layer over native events to smooth out cross-browser differences. Its source code is located in `packages/react-dom/src/events`
@@ -183,3 +269,9 @@ function mount(element) {
   - it means React has the power to delay calling it if necessary. (Pull approach, where computations can be delayed until necessary.)
   - In its current implementation React walks the tree recursively and calls render functions of the whole updated tree during a single tick.
   - However in the future it might start delaying some updates to avoid dropping frames.
+
+https://github.com/facebook/react/pull/14717
+https://blog.ag-grid.com/inside-fiber-an-in-depth-overview-of-the-new-reconciliation-algorithm-in-react/
+https://github.com/facebook/react/tree/master/packages/react-dom
+https://auth0.com/blog/time-slice-suspense-react16/
+https://hackernoon.com/building-a-polyfill-for-react-suspense-f1c7baf18ca1
