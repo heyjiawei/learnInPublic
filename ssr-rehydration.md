@@ -30,7 +30,7 @@ and then rehydrate like so:
 ```
 const node = document.getElementById('root');
 const userData = node.dataset.react ? JSON.parse(node.dataset.react) : {};
-ReactDOM.render(<App user={userData.user} />, node);
+ReactDOM.hydrate(<App user={userData.user} />, node);
 ```
 
 4. expose render function
