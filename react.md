@@ -36,9 +36,80 @@
 - By default, when recursing on the children of a DOM node, React just iterates over both lists of children at the same time and generates a mutation whenever there’s a difference.
 - React supports a key attribute. When children have keys, React uses the key to match children in the original tree with children in the subsequent tree.
 
-### Assumptions for reconcillation
+### Assumptions for reconciliation
 
 Different component types are assumed to generate substantially different trees. React will not attempt to diff them, but rather replace the old tree completely.
+
+### The algorithm in depth
+
+React performs work in two main phases:
+
+1. render
+2. commit
+
+- During the render phase
+
+  - React applies updates to components scheduled through setState or React.render and figures out what needs to be updated in the UI
+  - React creates a new fiber node for each element returned from the render method.
+    - In the following updates, fibers for existing React elements are re-used and updated.
+  - The result of the phase is a tree of fiber nodes marked with side-effects.
+    - The effects describe the work that needs to be done during the following commit phase.
+  - work during the render phase can be performed asynchronously.
+    - React can process one or more fiber nodes depending on the available time, then stop to stash the work done and yield to some event. Then continue on when from where it left off; or discard work and start again
+    - These pauses are made possible by the fact that the work performed during this phase doesn’t lead to any user-visible changes, like DOM updates.
+
+- During the commit phase
+  - React takes a fiber tree marked with effects and applies them to instances
+  - It goes over the list of effects and performs DOM updates and other changes visible to a user.
+  - the commit phase is always synchronous because the work performed during this stage leads to changes visible to the user, e.g. DOM updates. That’s why React needs to do them in a single pass.
+
+#### Lifecycle methods called during render phase
+
+- componentWillMount (deprecated)
+- componentWillReceiveProps (deprecated)
+- getDerivedStateFromProps
+- shouldComponentUpdate
+- componentWillUpdate (deprecated)
+- render
+
+#### Lifecycle methods called during commit phase
+
+- getSnapshotBeforeUpdate
+- componentDidMount
+- componentDidUpdate
+- componentWillUnmount
+
+#### Render phase
+
+- reconciliation algorithm always starts from the topmost HostRoot fiber node
+- React bails out of already processed fiber nodes until it finds the node with unfinished work
+  - if you call setState deep in the components tree, React will start from the top but quickly skip over the parents until it gets to the component that had its setState method called.
+- the work is done in depth first search method
+  - Once the node is completed, it’ll need to perform work for siblings and backtrack to the parent after that.
+
+#### Commit phase
+
+- When React gets to this phase, it has 2 trees and the effects list.
+- The first tree represents the state currently rendered on the screen. Then there’s an alternate tree built during the render phase.
+  - This alternate tree is linked similarly to the current tree through the child and sibling pointers.
+- then, there’s an effects list — a subset of nodes from the finishedWork tree linked through the nextEffect pointer.
+  - effect list is the result of running the render phase; to determine which nodes need to be inserted, updated, or deleted, and which components need to have their lifecycle methods called
+  - the effect list contains exactly the set of nodes that’s to be iterated during the commit phase.
+
+During the commit phase, it does the following (in order?):
+
+1. Calls the getSnapshotBeforeUpdate lifecycle method on nodes tagged with the Snapshot effect
+2. Calls the componentWillUnmount lifecycle method on nodes tagged with the Deletion effect
+3. Performs all the DOM insertions, updates and deletions
+4. Sets the finishedWork tree as current
+5. Calls componentDidMount lifecycle method on nodes tagged with the Placement effect
+6. Calls componentDidUpdate lifecycle method on nodes tagged with the Update effect
+
+React commits side-effects within a tree; it does it in 2 passes.
+
+- The first pass performs all DOM (host) insertions, updates, deletions and ref unmounts.
+  - Then React assigns the finishedWork tree to the FiberRootmarking the workInProgress tree as the current tree. This is done after the first pass of the commit phase, so that the previous tree is still current during componentWillUnmount, but before the second pass, so that the finished work is current during componentDidMount/Update
+- In the second pass React calls all other lifecycle methods and ref callbacks. These methods are executed as a separate pass so that all placements, updates, and deletions in the entire tree have already been invoked.
 
 ## Fiber Reconciler
 
@@ -101,7 +172,7 @@ Fields within a Fiber object:
   - a larger number indicates a lower priority
   - The scheduler uses the priority field to search for the next unit of work to perform.
 
-- **alternate** (means every other second or so)
+- **alternate** is like a clone
 
   - flush: To flush a fiber is to render its output onto the screen.
   - work-in-progress: A fiber that has not yet completed; conceptually, a stack frame which has not yet returned.
@@ -122,6 +193,42 @@ Fields within a Fiber object:
   - Every fiber eventually has output, but output is created only at the leaf nodes by host components. The output is then transferred up the tree.
     - host component: The leaf nodes of a React application. They are specific to the rendering environment (e.g., in a browser app, they are `div`, `span`, etc.). In JSX, they are denoted using lowercase tag names.
   - The output is what is eventually given to the renderer
+
+#### Current and work-in-progress trees
+
+- After the first render, React ends up with a **fiber tree** that reflects the state of the application that was used to render the UI.
+  - This tree is often referred to as current.
+- When React starts working on updates it builds a so-called workInProgress tree that reflects the future state to be flushed to the screen.
+
+- All work is performed on fibers from the workInProgress tree
+
+  - React always updates the DOM in one go — it doesn’t show partial results. The workInProgress tree serves as a “draft” that’s not visible to the user, so that React can process all components first, and then flush their changes to the screen.
+  - As React goes through the current tree, for each existing fiber node it creates an alternate node that constitutes the workInProgress tree.
+  - This node is created using the data from React elements returned by the render method.
+  - Once the updates are processed and all related work is completed, React will have an alternate tree ready to be flushed to the screen.
+  - Once this workInProgress tree is rendered on the screen, it becomes the current tree.
+
+- A node from the current tree points to the node from the workInProgress tree and vice versa.
+
+#### Side Effect
+
+- operations “side effects” (or “effects” for short) are called as such they can affect other components and can’t be done during rendering.
+- most state and props updates will lead to side-effects.
+  - applying effects is a type of work; a fiber node is a convenient mechanism to track effects in addition to updates. Each fiber node can have effects associated with it. They are encoded in the effectTag field.
+  - effects in Fiber basically define the work that needs to be done for instances after updates have been processed
+    - For host components (DOM elements) the work consists of adding, updating or removing elements.
+    - For class components React may need to update refs and call the componentDidMount and componentDidUpdate lifecycle methods
+    - There are also other effects corresponding to other types of fibers.
+
+#### Fiber tree root
+
+- Every React application has one or more DOM elements that act as containers.
+- React creates a fiber root object for each of those containers
+- This fiber root is where React holds the reference to a fiber tree. It is stored in the `current` property of the fiber root
+
+- The fiber tree starts with a special type of fiber node which is HostRoot
+  - It’s created internally and acts as a parent for your topmost component
+  - There’s a link from the HostRoot fiber node back to the FiberRoot through the stateNode property
 
 ### Stack Frame
 
