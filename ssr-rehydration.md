@@ -126,16 +126,41 @@ their implementation relies on instantiating separate React trees (??) for each 
   - built on top of progressive rehydration
   - individual pieces (components / views / trees) to be progressively rehydrated are analyzed and those with little interactivity or no reactivity are identified. For each of these mostly-static parts, the corresponding JavaScript code is then transformed into inert references and decorative functionality, reducing their client-side footprint to near-zero.
 
+## ReactDom.hydrate API
+
+- hydrates a container whose HTML contents were rendered by ReactDOMServer. React will attempt to attach event listeners to the existing markup.
+- React expects that the rendered content is identical between the server and the client.
+  - This means it assumes the server sent HTML (rendered with ReactDOMServer.renderToString) will be identical to the client side rendered output.
+    - ReactDOMServer.renderToString creates extra DOM attributes that React uses internally, such as `data-reactroot`
+- If a single element’s attribute or text content is unavoidably different between the server and the client, you may silence the warning by adding `suppressHydrationWarning={true}` to the element.
+  - It only works one level deep, and is intended to be an escape hatch
+- If you intentionally need to render something different on the server and the client, you can do a two-pass rendering.
+  - a two-pass rendering is where you set a state variable like `this.state.isClient` in componentDidMount() and cause the initial render pass to render the same content as the server, avoiding mismatches; the next pass will happen synchronously right after hydration
+  - Note that this approach will make your components slower because they have to render twice
+
 ## React concepts to understand before proceeding forward
+
+Look at the code for ReactDom.hydrate and ReactDOMServer.renderToString
 
 - ReactDOM.hydrate
 - suppressHydrationWarning
 - what is react's default way of hydration
+
 - what happens when you pass props to a `<div />`
+
+  - React elements will resolve it to host component. Host component prop will become DOM attribute
+
 - what does it mean that the diff work on server and client would result in server mark up being thrown out by React's initial reconciliation
+
+  - Rect assumes that the server sent HTML will be identical to the client rendered output. Does React do anything if its not?
+    Is it referring to the two-pass rendering?
+
 - Why hydrate the root content first
+  - The nodes are stored in a tree like structure
 - What does it mean that partial hydration works on top of Suspense fallback API
 - what is a frame
+  - a call stack frame from fiber reconciler
 - what is a commit
+  - the DOM manipulation phase
 - what is concurrent mode
-- why is the connection between the store and hydration
+- why is the connection between the redux/flux store and hydration
