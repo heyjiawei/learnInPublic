@@ -378,7 +378,5 @@ function mount(element) {
   - However in the future it might start delaying some updates to avoid dropping frames.
 
 https://github.com/facebook/react/pull/14717
-https://blog.ag-grid.com/inside-fiber-an-in-depth-overview-of-the-new-reconciliation-algorithm-in-react/
 https://github.com/facebook/react/tree/master/packages/react-dom
-https://auth0.com/blog/time-slice-suspense-react16/
 https://hackernoon.com/building-a-polyfill-for-react-suspense-f1c7baf18ca1
