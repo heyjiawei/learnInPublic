@@ -99,3 +99,9 @@ document.onkeydown = function(e) {
 - People experiencing low vision conditions, who are navigating with the aid of screen reading technology, or who have cognitive concerns may become confused when the new tab, window, or application is opened unexpectedly.
 - open new windows and tabs from a link only when necessary
 - otherwise, give users advanced warning when opening a new window
+
+## Skip links
+
+- A skip link, also known as "skipnav", is an a element placed as close as possible to the opening `<body>` element that links to the beginning of the page's main content.
+- This link allows people to bypass content repeated throughout multiple pages on a website, such as a website's header and primary navigation.
+- Skip links are especially useful for people who navigate with the aid of assistive technology such as switch control, voice command, or mouth sticks/head wands, where the act of moving through repetitive links can be a laborious task.
