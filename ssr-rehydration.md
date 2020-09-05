@@ -56,10 +56,18 @@ window.runReactApplication = runApplication;
 
 - Streaming server rendering (??)
 
-  - send HTML in chunks that the browser can progressively render as it's received.
+  - render multiple requests at once
+  - send content in chunks so that the browser can progressively render as it's received.
+    - aim for browser to begin rendering page before response is complete
+    - imporves TTFB
   - Using `renderToNodeStream()`
   - you can cache streamed HTML
     - buffer all the HTML chunks of a single request in memory as they come along, then concatenate them together once we’re all done, and store the entire HTML document in the cache using Node.js stream Transform
+
+  Limits
+
+  - streaming provides a mechanism for handling back pressure
+  - high watermark in Node.js for streams is 16kb
 
 - Progressive rehydration
 
@@ -113,6 +121,7 @@ their implementation relies on instantiating separate React trees (??) for each 
 
 ### Shopify
 
+- not a full strategy but more of a hack that could help in your progressive hydration strategy. Specifically solves the passing server data/rendered HTML to client
 - in quilt project, package [react-hydrate](https://www.npmjs.com/package/@shopify/react-hydrate)
 - Typically, doing different work on the server and client would result in the server markup being thrown out by React’s initial reconciliation.
 - This library avoids that issue by
@@ -125,6 +134,23 @@ their implementation relies on instantiating separate React trees (??) for each 
 - Partial rehydration
   - built on top of progressive rehydration
   - individual pieces (components / views / trees) to be progressively rehydrated are analyzed and those with little interactivity or no reactivity are identified. For each of these mostly-static parts, the corresponding JavaScript code is then transformed into inert references and decorative functionality, reducing their client-side footprint to near-zero.
+
+## Google I/O 19 hydrator
+
+Steps:
+
+1. prevent a root in our DOM from re-rendering; prevent renders from cascading through our hydrator boundary
+2. use dangerouslySetInnerHTML and set it to an empty value.
+
+- dangerouslySetInnerHTML is ignored during hydration. Allows us to bypass diffing for the server-rendered dom that exist inside of out component root
+
+3. when the hydrator component is mounted, we listen for an indication that it should be hydrated
+
+4. When the hydrator component is in view, the hydrator will import and hydrate the component in place against the server-rendered DOM that we captured by bypassing diffing
+
+```
+<Hydrator load={() => import('./suggested')}>
+```
 
 ## React concepts to understand before proceeding forward
 
@@ -139,3 +165,9 @@ their implementation relies on instantiating separate React trees (??) for each 
 - what is a commit
 - what is concurrent mode
 - why is the connection between the store and hydration
+- React.lazy
+
+## Other resources
+
+- vue-lazy-hydration?
+  - wraps and use specific events to detemine when to hydrate
