@@ -84,7 +84,7 @@ window.runReactApplication = runApplication;
   - This component registers a listener upon instantiation and never updates during additional renders, so the React tree continues to ignore it
   - When the listener is triggered, the JavaScript for the deferred component is downloaded and a new React tree is instantiated and hydrated at that DOM node.
 
-  To make hydration progressive, they tune hydration with the observation that"
+  To make hydration progressive, they tune hydration with the observation that
 
   > many parts of the page may not require interactivity until certain user interactions (such as scrolling to that section or clicking on a button) or may not require interactivity at all (like a footer of plain links). Hydrating these sections at initial page load is costly and unnecessary
 
@@ -164,6 +164,40 @@ Steps:
   - a two-pass rendering is where you set a state variable like `this.state.isClient` in componentDidMount() and cause the initial render pass to render the same content as the server, avoiding mismatches; the next pass will happen synchronously right after hydration
   - Note that this approach will make your components slower because they have to render twice
 
+## Vue lazy hydration
+
+[Vue lazy hydration package](https://github.com/maoberlehner/vue-lazy-hydration)
+
+4 hydration modes:
+
+1. when-idle
+2. ssr-only (only loaded in SSR mode. For static content / components that will never be interactive. It never gets hydrated in the browser)
+3. when-visible (delay hydration until component becomes visible)
+4. on-interaction (listens to a focus event by default) you can also set it to listen to a specific event or a list of events
+
+- on-interaction(??) So do we render the content but not hydrate the event listeners?
+- when-visible uses intersection observer. We might want to expose the configuration of intersection observer
+
+Resource for this concept:
+
+- https://markus.oberlehner.net/blog/abomination-a-concept-for-a-static-html-dynamic-javascript-hybrid-application/
+- https://markus.oberlehner.net/blog/how-to-drastically-reduce-estimated-input-latency-and-time-to-interactive-of-ssr-vue-applications/
+
+### abomination
+
+The idea of abomination is to build static websites with JavaScript but remove all JavaScript once the page is prerendered at build time.
+At the same time it should be possible to have certain components on the page remain as fully functional dynamic components
+
+You would need a dynamic component wrapper such that at build time, the code for initializing all dynamic component is extracted from the page.
+Your JavaScript bundle would then contain only the code for they dynamic components.
+
+The downsides for such approach:
+
+- developer experience is bad because you would have to think about which component should be dynamic and which is not
+- you also lose the dynamic routing capabilities you get with frontend frameworks
+
+abomination is more suited for static site generators
+
 ## React concepts to understand before proceeding forward
 
 Look at the code for ReactDom.hydrate and ReactDOMServer.renderToString
@@ -191,6 +225,8 @@ Look at the code for ReactDom.hydrate and ReactDOMServer.renderToString
 - what is concurrent mode
 - why is the connection between the store and hydration
 - React.lazy
+  - is used with suspense; The lazy component should then be rendered inside a Suspense component
+  - React.lazy takes a function that must call a dynamic import(). This must return a Promise which resolves to a module with a default export containing a React component.
 
 ## Other resources
 
