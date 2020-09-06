@@ -1,4 +1,4 @@
-## ReactDOM.hydrate source code
+## ReactDOM.hydrate source code in v16.13.1
 
 - Exported from packages/react-dom/src/client/ReactDOM.js
 - hydrate function is in packages/react-dom/src/client/ReactDOMLegacy.js
@@ -83,4 +83,39 @@ In `updateContainer` at packages/react-dom/src/client/ReactDOMLegacy.js
 
 ## ReactDOMServer
 
-packages/react-dom/src/server/ReactDOMServerNode.js
+- function in packages/react-dom/src/server/ReactDOMStringRenderer.js
+- call `new ReactPartialRenderer(element, false)`
+  - ReactPartialRenderer is ReactDOMServerRenderer in packages/react-dom/src/server/ReactPartialRenderer.js
+- try to read markup with `renderer.read(Infinity)` and then return markup
+
+## suppressHydrationWarning
+
+- called in packages/react-dom/src/client/ReactDOMComponent.js
+  ```
+  function diffProperties(
+    domElement: Element,
+    tag: string,
+    lastRawProps: Object,
+    nextRawProps: Object,
+    rootContainerElement: Element | Document,
+  ): null | Array<mixed>
+  ```
+- by prepareUpdate in packages/react-dom/src/client/ReactDOMHostConfig.js
+
+  - called and used in packages/react-reconciler/src/ReactFiberCompleteWork.js
+
+  ```
+  function prepareUpdate(
+    domElement: Instance,
+    type: string,
+    oldProps: Props,
+    newProps: Props,
+    rootContainerInstance: Container,
+    hostContext: HostContext,
+  ): null | Array<mixed>
+  ```
+
+- diffProperties() calls assertValidProps(tag, nextProps)
+  - assertValidProps in packages/react-dom/src/shared/assertValidProps.js
+  - if props.dangerouslySetInnerHTML is set, there must be no children set
+  - props.dangerouslySetInnerHTML must be of type 'object' and it must have `__html` set in props.dangerouslySetInnerHTML

@@ -3,7 +3,7 @@
 ## Rehydration concept
 
 - Server renders HTML string (Rendered UI) and adds it into HTML
-- Server serialises data for UI and adds it into HTML `<script>` tag
+- Server serializes data for UI and adds it into HTML `<script>` tag
 - only after bundle.js finished loading and executing then UI will be interactive
 - one of the most common SSR Rehydration pitfalls, where a server-rendered DOM tree gets destroyed and then immediately rebuilt - most often because the initial synchronous client-side render required data that wasn’t quite ready, perhaps awaiting Promise resolution.
 
@@ -59,7 +59,7 @@ window.runReactApplication = runApplication;
   - render multiple requests at once
   - send content in chunks so that the browser can progressively render as it's received.
     - aim for browser to begin rendering page before response is complete
-    - imporves TTFB
+    - improves TTFB
   - Using `renderToNodeStream()`
   - you can cache streamed HTML
     - buffer all the HTML chunks of a single request in memory as they come along, then concatenate them together once we’re all done, and store the entire HTML document in the cache using Node.js stream Transform
@@ -204,7 +204,7 @@ Look at the code for ReactDom.hydrate and ReactDOMServer.renderToString
 
 - ReactDOM.hydrate
 - suppressHydrationWarning
-- what is react's default way of hydration
+- what is React's default way of hydration
 
 - what happens when you pass props to a `<div />`
 
@@ -231,5 +231,5 @@ Look at the code for ReactDom.hydrate and ReactDOMServer.renderToString
 ## Other resources
 
 - vue-lazy-hydration?
-  - wraps and use specific events to detemine when to hydrate
+  - wraps and use specific events to determine when to hydrate
 - why is the connection between the redux/flux store and hydration
