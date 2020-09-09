@@ -200,28 +200,6 @@ abomination is more suited for static site generators
 
 ## React concepts to understand before proceeding forward
 
-Look at the code for ReactDom.hydrate and ReactDOMServer.renderToString
-
-- ReactDOM.hydrate
-- suppressHydrationWarning
-- what is React's default way of hydration
-
-- what happens when you pass props to a `<div />`
-
-  - React elements will resolve it to host component. Host component prop will become DOM attribute
-
-- what does it mean that the diff work on server and client would result in server mark up being thrown out by React's initial reconciliation
-
-  - Rect assumes that the server sent HTML will be identical to the client rendered output. Does React do anything if its not?
-    Is it referring to the two-pass rendering?
-
-- Why hydrate the root content first
-  - The nodes are stored in a tree like structure
-- What does it mean that partial hydration works on top of Suspense fallback API
-- what is a frame
-  - a call stack frame from fiber reconciler
-- what is a commit
-  - the DOM manipulation phase
 - what is concurrent mode
 - why is the connection between the store and hydration
 - React.lazy
@@ -233,3 +211,11 @@ Look at the code for ReactDom.hydrate and ReactDOMServer.renderToString
 - vue-lazy-hydration?
   - wraps and use specific events to determine when to hydrate
 - why is the connection between the redux/flux store and hydration
+- [idea to render on idle with code examples](https://medium.com/@kumarswapnil/optimizing-react-performance-part-i-81d62c90cce0)
+
+## Findings
+
+- when you use dangerouslySetHTML as an empty string in a `<div>`(or dom element), it stops react from walking down the tree. So on server side, if we return the rendered DOM components. We can use dangerouslySetHTML to signal to react no to do anything more in this subtree. That will be how we retain the Server returned HTML.
+- There are some [issues with context](https://codesandbox.io/s/compassionate-silence-d3iph?file=/src/App.js) and here is [how shopfiy may have resolved context issue](https://codesandbox.io/s/jovial-resonance-0s6nn?file=/src/App.js)
+- by the way, [Preact has a different hydration behaviour](https://codesandbox.io/s/dazzling-roentgen-x6gt4?file=/public/index.html)
+- [you can pass click to hydrated components](https://codesandbox.io/s/aged-sea-su13d?file=/src/App.js) and forking from that, [state can be updated](https://codesandbox.io/s/nifty-jackson-vsh9r?file=/src/App.js)
