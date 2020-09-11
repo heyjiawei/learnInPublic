@@ -3,7 +3,7 @@
 ## Rehydration concept
 
 - Server renders HTML string (Rendered UI) and adds it into HTML
-- Server serialises data for UI and adds it into HTML `<script>` tag
+- Server serializes data for UI and adds it into HTML `<script>` tag
 - only after bundle.js finished loading and executing then UI will be interactive
 - one of the most common SSR Rehydration pitfalls, where a server-rendered DOM tree gets destroyed and then immediately rebuilt - most often because the initial synchronous client-side render required data that wasn’t quite ready, perhaps awaiting Promise resolution.
 
@@ -56,10 +56,18 @@ window.runReactApplication = runApplication;
 
 - Streaming server rendering (??)
 
-  - send HTML in chunks that the browser can progressively render as it's received.
+  - render multiple requests at once
+  - send content in chunks so that the browser can progressively render as it's received.
+    - aim for browser to begin rendering page before response is complete
+    - improves TTFB
   - Using `renderToNodeStream()`
   - you can cache streamed HTML
     - buffer all the HTML chunks of a single request in memory as they come along, then concatenate them together once we’re all done, and store the entire HTML document in the cache using Node.js stream Transform
+
+  Limits
+
+  - streaming provides a mechanism for handling back pressure
+  - high watermark in Node.js for streams is 16kb
 
 - Progressive rehydration
 
@@ -76,7 +84,7 @@ window.runReactApplication = runApplication;
   - This component registers a listener upon instantiation and never updates during additional renders, so the React tree continues to ignore it
   - When the listener is triggered, the JavaScript for the deferred component is downloaded and a new React tree is instantiated and hydrated at that DOM node.
 
-  To make hydration progressive, they tune hydration with the observation that"
+  To make hydration progressive, they tune hydration with the observation that
 
   > many parts of the page may not require interactivity until certain user interactions (such as scrolling to that section or clicking on a button) or may not require interactivity at all (like a footer of plain links). Hydrating these sections at initial page load is costly and unnecessary
 
@@ -113,6 +121,7 @@ their implementation relies on instantiating separate React trees (??) for each 
 
 ### Shopify
 
+- not a full strategy but more of a hack that could help in your progressive hydration strategy. Specifically solves the passing server data/rendered HTML to client
 - in quilt project, package [react-hydrate](https://www.npmjs.com/package/@shopify/react-hydrate)
 - Typically, doing different work on the server and client would result in the server markup being thrown out by React’s initial reconciliation.
 - This library avoids that issue by
@@ -126,6 +135,23 @@ their implementation relies on instantiating separate React trees (??) for each 
   - built on top of progressive rehydration
   - individual pieces (components / views / trees) to be progressively rehydrated are analyzed and those with little interactivity or no reactivity are identified. For each of these mostly-static parts, the corresponding JavaScript code is then transformed into inert references and decorative functionality, reducing their client-side footprint to near-zero.
 
+## Google I/O 19 hydrator
+
+Steps:
+
+1. prevent a root in our DOM from re-rendering; prevent renders from cascading through our hydrator boundary
+2. use dangerouslySetInnerHTML and set it to an empty value.
+
+- dangerouslySetInnerHTML is ignored during hydration. Allows us to bypass diffing for the server-rendered dom that exist inside of out component root
+
+3. when the hydrator component is mounted, we listen for an indication that it should be hydrated
+
+4. When the hydrator component is in view, the hydrator will import and hydrate the component in place against the server-rendered DOM that we captured by bypassing diffing
+
+```
+<Hydrator load={() => import('./suggested')}>
+```
+
 ## ReactDom.hydrate API
 
 - hydrates a container whose HTML contents were rendered by ReactDOMServer. React will attempt to attach event listeners to the existing markup.
@@ -138,29 +164,58 @@ their implementation relies on instantiating separate React trees (??) for each 
   - a two-pass rendering is where you set a state variable like `this.state.isClient` in componentDidMount() and cause the initial render pass to render the same content as the server, avoiding mismatches; the next pass will happen synchronously right after hydration
   - Note that this approach will make your components slower because they have to render twice
 
+## Vue lazy hydration
+
+[Vue lazy hydration package](https://github.com/maoberlehner/vue-lazy-hydration)
+
+4 hydration modes:
+
+1. when-idle
+2. ssr-only (only loaded in SSR mode. For static content / components that will never be interactive. It never gets hydrated in the browser)
+3. when-visible (delay hydration until component becomes visible)
+4. on-interaction (listens to a focus event by default) you can also set it to listen to a specific event or a list of events
+
+- on-interaction(??) So do we render the content but not hydrate the event listeners?
+- when-visible uses intersection observer. We might want to expose the configuration of intersection observer
+
+Resource for this concept:
+
+- https://markus.oberlehner.net/blog/abomination-a-concept-for-a-static-html-dynamic-javascript-hybrid-application/
+- https://markus.oberlehner.net/blog/how-to-drastically-reduce-estimated-input-latency-and-time-to-interactive-of-ssr-vue-applications/
+
+### abomination
+
+The idea of abomination is to build static websites with JavaScript but remove all JavaScript once the page is prerendered at build time.
+At the same time it should be possible to have certain components on the page remain as fully functional dynamic components
+
+You would need a dynamic component wrapper such that at build time, the code for initializing all dynamic component is extracted from the page.
+Your JavaScript bundle would then contain only the code for they dynamic components.
+
+The downsides for such approach:
+
+- developer experience is bad because you would have to think about which component should be dynamic and which is not
+- you also lose the dynamic routing capabilities you get with frontend frameworks
+
+abomination is more suited for static site generators
+
 ## React concepts to understand before proceeding forward
 
-Look at the code for ReactDom.hydrate and ReactDOMServer.renderToString
-
-- ReactDOM.hydrate
-- suppressHydrationWarning
-- what is react's default way of hydration
-
-- what happens when you pass props to a `<div />`
-
-  - React elements will resolve it to host component. Host component prop will become DOM attribute
-
-- what does it mean that the diff work on server and client would result in server mark up being thrown out by React's initial reconciliation
-
-  - Rect assumes that the server sent HTML will be identical to the client rendered output. Does React do anything if its not?
-    Is it referring to the two-pass rendering?
-
-- Why hydrate the root content first
-  - The nodes are stored in a tree like structure
-- What does it mean that partial hydration works on top of Suspense fallback API
-- what is a frame
-  - a call stack frame from fiber reconciler
-- what is a commit
-  - the DOM manipulation phase
 - what is concurrent mode
+- why is the connection between the store and hydration
+- React.lazy
+  - is used with suspense; The lazy component should then be rendered inside a Suspense component
+  - React.lazy takes a function that must call a dynamic import(). This must return a Promise which resolves to a module with a default export containing a React component.
+
+## Other resources
+
+- vue-lazy-hydration?
+  - wraps and use specific events to determine when to hydrate
 - why is the connection between the redux/flux store and hydration
+- [idea to render on idle with code examples](https://medium.com/@kumarswapnil/optimizing-react-performance-part-i-81d62c90cce0)
+
+## Findings
+
+- when you use dangerouslySetHTML as an empty string in a `<div>`(or dom element), it stops react from walking down the tree. So on server side, if we return the rendered DOM components. We can use dangerouslySetHTML to signal to react no to do anything more in this subtree. That will be how we retain the Server returned HTML.
+- There are some [issues with context](https://codesandbox.io/s/compassionate-silence-d3iph?file=/src/App.js) and here is [how shopfiy may have resolved context issue](https://codesandbox.io/s/jovial-resonance-0s6nn?file=/src/App.js)
+- by the way, [Preact has a different hydration behaviour](https://codesandbox.io/s/dazzling-roentgen-x6gt4?file=/public/index.html)
+- [you can pass click to hydrated components](https://codesandbox.io/s/aged-sea-su13d?file=/src/App.js) and forking from that, [state can be updated](https://codesandbox.io/s/nifty-jackson-vsh9r?file=/src/App.js)
