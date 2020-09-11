@@ -70,7 +70,9 @@ your-project
 ```
 
 - **Plugins are resolved relative to the config file**. In other words, ESLint will load the plugin as a user would obtain by running `require('eslint-plugin-pluginname')` in the config file.
-- Plugins in the base configuration (loaded by extends setting) are relative to the derived config file. For example, if `./.eslintrc` has `extends: ["foo"]` and the `eslint-config-foo has plugins: ["bar"]`, ESLint finds the `eslint-plugin-bar` from `./node_modules/` (rather than `./node_modules/eslint-config-foo/node_modules/`) or ancestor directories. Thus every plugin in the config file and base configurations is resolved uniquely.
+- Plugins in the base configuration (loaded by extends setting) are relative to the derived config file.
+
+For example, if `./.eslintrc` has `extends: ["foo"]` and the `eslint-config-foo has plugins: ["bar"]`, ESLint finds the `eslint-plugin-bar` from `./node_modules/` (rather than `./node_modules/eslint-config-foo/node_modules/`) or ancestor directories. Thus every plugin in the config file and base configurations is resolved uniquely.
 
 - Plugins have a naming convention of `eslint-plugin-` prefix
   - The `eslint-plugin-` prefix can be omitted for non-scoped packages
@@ -194,16 +196,115 @@ foo(); /* eslint-disable-line example/rule-name */
 
 # Extending configuration files
 
-// TODO
+- The `extends` property value can omit the `eslint-config-` prefix of the package name.
+- The `extends` property is either
+  - a string; specifies a path to a config file, the name of a sharable config, "eslint:recommend" or "eslint:all"
+    - using "eslint:recommended" enables a subset of core rules that report common problems, which have a check mark on the rules page.
+      - The recommended subset can change only at major versions of ESLint.
+    - using "eslint:all" enable all core rules in the currently installed version of ESLint
+      - The set of core rules can change at any minor or major version of ESLint.
+      - This configuration is not recommended for production use because it changes with every minor and major version of ESLint.
+  - an array of strings; each additional configuration extends the preceding configurations
+- relative paths and sharable config names in an `extends` property are resolved from the location of the config file
+- the configs are extended recursively
+- the following can cause `rule` properties to extend or override the current set of rules
+  - change an **inherited** rule's severity without changing its options:
+    - Base config: "eqeqeq": ["error", "allow-null"]
+    - Derived config: "eqeqeq": "warn"
+    - Resulting actual config: "eqeqeq": ["warn", "allow-null"]
+  - override options for rules
+    - Base config: "quotes": ["error", "single", "avoid-escape"]
+    - Derived config: "quotes": ["error", "single"]
+    - Resulting actual config: "quotes": ["error", "single"]
+- if the config is provided via CLI option, the glob patterns in the config are relative the the current working directory rather than the base directory of the given config.
 
-# Specify Envirionment
+## Sharable config package
 
-// TODO
+- A sharable configuration is an npm package that exports a configuration object
+
+## Using configurations from plugins
+
+- some plugins export one or more named configurations
+- the extends property can consist of `<plugin-name>:<package-name>[/][config-name]`
+  - where `<>` is required and `[]` is optional
+  - you can omit the prefix for package name
+
+```
+{
+    "plugins": [
+        "react"
+    ],
+    "extends": [
+        "plugin:react/recommended"
+    ]
+}
+```
+
+## Specifying with Glob patterns
+
+- Glob pattern overrides have higher precedence than the regular configuration in the same config file.
+- Multiple overrides within the same config are applied in order; The last override block in a config file always has the highest precedence.
+- A glob specific configuration works almost the same as any other ESLint config. Override blocks can contain any configuration options that are valid in a regular config, with the exception of `root` and `ignorePatterns`.
+- Multiple glob patterns can be provided within a single override block. A file must match at least one of the supplied patterns for the configuration to apply.
+- Override blocks can also specify patterns to exclude from matches. If a file matches any of the excluded patterns, the configuration won't apply.
+
+# ignorePatterns
+
+- You can tell ESLint to ignore specific files and directories by `ignorePatterns` in your config files
+- The `ignorePatterns` property affects only the directory that the config file placed.
+- You cannot write `ignorePatterns` property under `overrides` property.
+- `.eslintignore` can override `ignorePatterns` property of config files.
+
+# .eslintignore
+
+- The .eslintignore file is a plain text file where each line is a glob pattern indicating which paths should be omitted from linting.
+- When ESLint is run, it looks in the current working directory to find an .eslintignore file before determining which files to lint. **If this file is found, then those preferences are applied when traversing directories**
+- Only one .eslintignore file can be used at a time, so .eslintignore files other than the one in the current working directory will not be used.
+- follows .gitignore syntax
+- ESLint always follows a couple implicit ignore rules even if the --no-ignore flag is passed. The implicit rules are as follows:
+  - `node_modules/` is ignored.
+  - Dotfiles (except for `.eslintrc.*`) as well as Dotfolders and their contents are ignored.
+- Exceptions to this rule are:
+  - if the path **to lint** is a glob pattern or directory path and contains a Dotfolder (e.g. `eslint .config/` will lint all Dotfolders and Dotfiles in the .config directory), all Dotfiles and Dotfolders will be linted. This includes sub-dotfiles and sub-dotfolders that are buried deeper in the directory structure.
+  - if the path to lint is a specific file path and `--no-ignore` flag is passed, ESLint will still lint the file regardless of implicit ignore rules
+  - Allowlist and denylist rules specified via `--ignore-pattern` or `.eslintignore` are prioritized above implicit ignore rules.
 
 # Specify Parser and Parser options
 
-// TODO
+- By default, ESLint uses Espree as its parser.
+- Parser options are set in your `.eslintrc.*` file by using the `parserOptions` property.
+- ESLint allows you to specify the JavaScript language options you want to support
+- By default, ESLint expects ECMAScript 5 syntax.
+- supporting JSX syntax is not the same as supporting React. React applies specific semantics to JSX syntax that ESLint doesn't recognize.
+- supporting ES6 syntax is not the same as supporting new ES6 globals
+- For ES6 syntax, use `{ "parserOptions": { "ecmaVersion": 6 } };`
+- for new ES6 global variables use `{ "env": { "es6": true } }`.
+  - `{ "env": { "es6": true } }` enables ES6 syntax automatically, but `{ "parserOptions": { "ecmaVersion": 6 } }` does not enable ES6 globals automatically.
 
 # Specify Processor
 
-// TODO
+- Processors can extract JavaScript code from another kind of files, then lets ESLint lint the JavaScript code
+- processors can convert JavaScript code in preprocessing for some purpose.
+- Plugins may provide processors.
+- the following enables the processor `a-processor` that the plugin `a-plugin` provided:
+
+```
+{
+    "plugins": ["a-plugin"],
+    "processor": "a-plugin/a-processor"
+}
+```
+
+- To specify processors for specific kinds of files, use the combination of the `overrides` key and the `processor` key.
+
+```
+{
+    "plugins": ["a-plugin"],
+    "overrides": [
+        {
+            "files": ["*.md"],
+            "processor": "a-plugin/markdown"
+        }
+    ]
+}
+```
