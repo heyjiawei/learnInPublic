@@ -328,3 +328,13 @@ foo(); /* eslint-disable-line example/rule-name */
     ]
 }
 ```
+
+# using eslint-plugin-prettier
+
+- These plugins were especially useful when Prettier was new. By running Prettier inside your linters, you didn’t have to set up any new infrastructure and you could re-use your editor integrations for the linters. But these days you can run `prettier --check` . and most editors have Prettier support.
+
+The downsides of those plugins are:
+
+- You end up with a lot of red squiggly lines in your editor, which gets annoying. Prettier is supposed to make you forget about formatting – and not be in your face about it!
+- They are slower than running Prettier directly.
+- They’re yet one layer of indirection where things may break.
