@@ -1,3 +1,22 @@
+# Difference between eslint-config and eslint-plugin
+
+- A plugin is a superset of a sharable config.
+- A plugin can contain and export all of the following:
+
+  - custom rules
+  - configurations that can be extended in rules
+  - processors
+  - parsers (?)
+
+- A sharable configuration can only export configurations
+- If you want to extend a configuration, the syntax is different depending on if it's a config package or a plugin.
+
+  - Config package: `"extends": ["foo"]` (extends eslint-config-foo)
+  - Plugin: `"extends": ["plugin:foo/bar"]` (extends the bar configuration from eslint-plugin-foo)
+
+- And as for which to use... If you're consuming a config in your own project, that just depends on what the config author published it as.
+- If you're creating your own config for others to use, then I always ask myself this question: Is there any chance I might need to create a custom rule or a processor which would make sense with this configuration? If the answer is yes-- even 1% chance-- it's better to create a plugin.
+
 # Configuration
 
 - There are two ways to use configuration files.
@@ -196,6 +215,7 @@ foo(); /* eslint-disable-line example/rule-name */
 
 # Extending configuration files
 
+- A config provides preconfigured rules. These rules can consist of ESLint rules, third party plugin rules or other configurations such as the parser (babel, esprima, ...), options (sourceType, ...), env (ES6, ...), and so on.
 - The `extends` property value can omit the `eslint-config-` prefix of the package name.
 - The `extends` property is either
   - a string; specifies a path to a config file, the name of a sharable config, "eslint:recommend" or "eslint:all"
