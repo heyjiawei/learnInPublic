@@ -246,6 +246,15 @@ Fibre Reconciler aims to reimplement the call stack to optimize for rendering UI
 # Event System
 
 - React implements a layer over native events to smooth out cross-browser differences. Its source code is located in `packages/react-dom/src/events`
+- within the framework, event handlers are passed instances of `SyntheticEvent`, a cross-browser wrapper around the browser’s native event
+  - The synthetic events are different from, and do not map directly to, the browser’s native events
+  - The specific mapping is not part of the public API and may change at any time.
+- use `nativeEvent` attribute to get the underlying browser event
+
+## Event pooling
+
+- This means that the `SyntheticEvent` object will be reused and all properties will be nullified after the event callback has been invoked.
+- If you want to access the event properties in an asynchronous way, you should call event.persist() on the event, which will remove the synthetic event from the pool and allow references to the event to be retained by user code.
 
 # React components, Elements and instances
 
