@@ -54,7 +54,7 @@ window.runReactApplication = runApplication;
 
 ## Incremental rehydrating or ways to speed up rehydrating
 
-- Streaming server rendering (??)
+- Streaming server rendering
 
   - render multiple requests at once
   - send content in chunks so that the browser can progressively render as it's received.
@@ -63,6 +63,7 @@ window.runReactApplication = runApplication;
   - Using `renderToNodeStream()`
   - you can cache streamed HTML
     - buffer all the HTML chunks of a single request in memory as they come along, then concatenate them together once we’re all done, and store the entire HTML document in the cache using Node.js stream Transform
+  - refer to google's [stream your way to immediate responses](https://developers.google.com/web/updates/2016/06/sw-readablestreams) for more explanation
 
   Limits
 
