@@ -23,8 +23,51 @@ config target property contains browsers and their versions
 - if you know what polyfills you need, you can require them directly from core-js
 - `@babel/env` `useBuiltIns: usage` property will only include polyfills that you use.
 
-- if your Babel plugin option requires the usage of JavaScript, use a JavaScript configuration file (? ending with .js or .json)
+- if your Babel plugin option requires the usage of JavaScript, use a JavaScript configuration file (.js extension) that returns the Babel JSON object.
+
+  - the downside is that JS configs are less statically analyzable, and therefore have negative effects on cacheability, linting, IDE autocomplete, etc. Since babel.config.json and .babelrc.json are static JSON files, it allows other tools that use Babel such as bundlers to cache the results of Babel safely, which can be a huge build performance win.
+
+- JavaScript configuration files can either export an object, or a function that when called will return the generated configuration. Function-returning configs are given a few special powers because they can access an API exposed by Babel itself.
+
 - If you have a configuration that only applies to a single part of your project, use `.babelrc.json`. Otherwise, use `babel.config.json`.
+
+  - `.babelrc.json` is a file-relative config
+
+    - Babel will search up the directory structure starting from the filename being compiled.
+      - The filename associated with the code currently being compiled, if there is one. The filename is optional, but not all of Babel's functionality is available when the filename is unknown, because a subset of options rely on the filename for their functionality.
+    - File-relative configurations are also merged over top of project-wide config values, making them potentially useful for specific overrides, though that can also be accomplished through `overrides`.
+    - Searching will stop once a directory containing a `package.json` is found, so a relative config only applies within a single package; **files only apply to files within their own package**
+    - The "filename" being compiled must be inside of "babelrcRoots" packages, or else searching will be skipped entirely; **files in packages that aren't Babel's 'root' are ignored unless you opt in with "babelrcRoots".**
+
+    This means that for this file structure, compiling the packages/mod/index.js file will not load packages/mod/.babelrc.json because this .babelrc.json is within a sub-package, not the root package.
+
+    ```
+    package.json
+    babel.config.js
+    packages/
+      mod/
+        package.json
+        .babelrc.json
+        index.js
+    ```
+
+    To enable processing of that .babelrc.json, you will want to use the "babelrcRoots" option from inside your babel.config.json file to do
+
+    ```js
+    // in .babelrc.json
+    babelrcRoots: [
+      ".",          // Keep the root as a root
+      "packages/*", // Also consider monorepo packages "root" and load their .babelrc.json files.
+    ],
+    ```
+
+    - if you are running your Babel compilation process from within a subpackage, you need to tell Babel where to look for the config. There are a few ways to do that, but the recommended way is the `rootMode` option with `upward`, which will make Babel search from the working directory upward looking for your babel.config.json file, and will use its location as the "root" value.
+
+  - `babel.config.json` is project-wide config
+    - Babel has a concept of a "root" directory, which defaults to the current working directory.
+    - For project-wide configuration, Babel will automatically search for a babel.config.json file, or an equivalent one using the supported extensions, in this root directory.
+    - Alternatively, users can use an explicit `configFile` value to override the default config file search behavior.
+    - Project-wide configs can also be disabled by setting `configFile` to false.
 
 ```js
 const presets = [ ... ];
@@ -50,6 +93,14 @@ module.exports = { presets, plugins };
   }
 }
 ```
+
+- Babel can be configured using any file extension natively supported by Node.js
+  - you can use .json, .js, .cjs and .mjs, both for babel.config.json and .babelrc.json files.
+  - babel.config.cjs and .babelrc.cjs allow you to define your configuration as CommonJS, using `module.exports`.
+  - babel.config.mjs and .babelrc.mjs use native ECMAScript modules. They are supported by Node.js 13.2+ (or older versions via the `--experimental-modules` flag). Please remember that native ECMAScript modules are asynchronous (that's why import() always returns a promise!): for this reason, .mjs config files will throw when calling Babel synchronously.
+  - babel.config.js and .babelrc.js behave like the .mjs equivalents when your package.json file contains the "type": "module" option, otherwise they are exactly the same as the .cjs files.
+
+> One helpful way to test if your config is being detected is to place a `console.log()` call inside of it if it is a babel.config.json JavaScript file: the log will execute the first time Babel loads it.
 
 # Config properties
 
@@ -265,3 +316,36 @@ plugins: [
   - Setting the correct sourceType can be important because having the wrong type can lead to cases where Babel would insert import statements into files that are meant to be CommonJS files.
   - This can be particularly important in projects where compilation of node_modules dependencies is being performed, because inserting an import statements can cause Webpack and other tooling to see a file as an ES module, breaking what would otherwise be a functional CommonJS file.
 - Babel defaults to treating files are ES modules so generally these plugins/presets will insert import statements
+
+# @babel/plugin-transform-runtime
+
+- Basically, you can use built-ins such as Promise, Set, Symbol, etc.- , as well use all the Babel features that require a polyfill seamlessly, without global pollution, - making it extremely suitable for libraries.
+- A secondary feature of this plugin is reduce code duplication. Babel uses very small helpers for common functions such as `_extend`. By default this will be added to every file that requires it. The plugin will have all helpers reference `@babel/runtime` module to avoid duplication across your compiled output. The runtime will be compiled into your build
+
+- Make sure you include @babel/runtime as a dependency.
+
+The transform-runtime transformer plugin does three things:
+
+- Automatically requires `@babel/runtime/regenerator` when you use generators/async functions (toggleable with the regenerator option).
+- Can use core-js for helpers if necessary instead of assuming it will be polyfilled by the user - (toggleable with the corejs option)
+- Automatically removes the inline Babel helpers and uses the module `@babel/runtime/helpers` instead - (toggleable with the helpers option).
+
+# @babel/register
+
+- you can use @babel/cli watch mode to compile a file every time you changed it
+- another way is to hook Babel onto `require`. This way of using Babel is called the require hook
+- require hook will bind itself to node's `require` and automatically compile files on the fly.
+- it ignores `node_modules` by default.
+  - You can override this by passing an ignore regex via:
+  ```js
+  require("@babel/register")({
+    // This will override `node_modules` ignoring - you can alternatively pass
+    // an array of strings to be explicitly matched or a regex / glob
+    ignore: [],
+  });
+  ```
+- By default `@babel/node cli` and `@babel/register` will save to a json cache in your temporary directory.
+  - to specify a different cache location, set `BABEL_CACHE_PATH`
+  - to disable the cache, set `BABEL_DISABLE_CACHE=1`
+- this module explicitly disallows re-entrant compilation, e.g. Babel's own compilation logic explicitly cannot trigger further compilation of any other files on the fly.
+- `@babel/register` does not support compiling native Node.js ES modules on the fly, since currently there is no stable API for intercepting ES modules loading.
