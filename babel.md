@@ -69,6 +69,8 @@ config target property contains browsers and their versions
     - Alternatively, users can use an explicit `configFile` value to override the default config file search behavior.
     - Project-wide configs can also be disabled by setting `configFile` to false.
 
+# Customizing Babel based on environment
+
 ```js
 const presets = [ ... ];
 const plugins = [ ... ];
@@ -79,6 +81,25 @@ if (process.env["ENV"] === "prod") {
 
 module.exports = { presets, plugins };
 ```
+
+Or in your configuration file:
+
+```json
+{
+    "presets": ["es2015"],
+    "plugins": [],
+    "env": {
+      "development": {
+        "plugins": [...]
+      },
+      "production": {
+        "plugins": [...]
+      }
+    }
+  }
+```
+
+- The current environment will use `process.env.BABEL_ENV`. When `BABEL_ENV` is not available, it will fallback to `NODE_ENV`, and if that is not available it will default to "development".
 
 - You can also specify Babel config on `package.json` using `babel` key:
 - **Plugins run before Presets**
@@ -322,7 +343,7 @@ plugins: [
 - Basically, you can use built-ins such as Promise, Set, Symbol, etc.- , as well use all the Babel features that require a polyfill seamlessly, without global pollution, - making it extremely suitable for libraries.
 - A secondary feature of this plugin is reduce code duplication. Babel uses very small helpers for common functions such as `_extend`. By default this will be added to every file that requires it. The plugin will have all helpers reference `@babel/runtime` module to avoid duplication across your compiled output. The runtime will be compiled into your build
 
-- Make sure you include @babel/runtime as a dependency.
+- Make sure you include @babel/runtime as a dependency. `$ npm install --save babel-runtime`
 
 The transform-runtime transformer plugin does three things:
 
@@ -334,7 +355,40 @@ The transform-runtime transformer plugin does three things:
 
 - you can use @babel/cli watch mode to compile a file every time you changed it
 - another way is to hook Babel onto `require`. This way of using Babel is called the require hook
+
+> Note that this is not meant for production use. It's considered bad practice to deploy code that gets compiled this way. It is far better to compile ahead of time before deploying. However this works quite well for build scripts or other things that you run locally.
+
 - require hook will bind itself to node's `require` and automatically compile files on the fly.
+
+First install babel-register.
+
+```shell
+$ npm install --save-dev babel-register
+```
+
+Next, create a register.js file in the project and write the following code:
+
+```js
+require("babel-register");
+require("./index.js");
+```
+
+What this does is registers Babel in Node's module system and begins compiling every file that is require'd.
+
+Now, instead of running node index.js we can use register.js instead.
+
+```js
+$ node register.js
+```
+
+> Note: You can't register Babel in the same file that you want to compile. As node is executing the file before Babel has a chance to compile it.
+
+```js
+require("babel-register");
+// not compiled:
+console.log("Hello world!");
+```
+
 - it ignores `node_modules` by default.
   - You can override this by passing an ignore regex via:
   ```js
@@ -349,3 +403,15 @@ The transform-runtime transformer plugin does three things:
   - to disable the cache, set `BABEL_DISABLE_CACHE=1`
 - this module explicitly disallows re-entrant compilation, e.g. Babel's own compilation logic explicitly cannot trigger further compilation of any other files on the fly.
 - `@babel/register` does not support compiling native Node.js ES modules on the fly, since currently there is no stable API for intercepting ES modules loading.
+
+# Loose mode
+
+Many plugins in Babel have two modes:
+
+- A normal mode follows the semantics of ECMAScript 6 as closely as possible.
+- A loose mode produces simpler ES5 code.
+
+Normally, it is recommended to not use loose mode. The pros and cons are:
+
+- Pros: The generated code is potentially faster and more compatible with older engines. It also tends to be cleaner, more “ES5-style”.
+- Con: You risk getting problems later on, when you switch from transpiled ES6 to native ES6. That is rarely a risk worth taking.
