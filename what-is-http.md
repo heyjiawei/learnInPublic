@@ -78,3 +78,47 @@ HTTP standards
 
 - But HTTP/2 multiplexing can still cause performance issues - when multiple streams await for the same resource, it can cause performance issues.
   - hence stream prioritization
+
+## Stream prioritization
+
+- allows developers to customize the relative weight of requests.
+  - when a client sends concurrent requests to a server, (the client) it can prioritise the responses it is requesting by assigning a weight between 1 and 256 to each stream
+    - higher number indicates higher priority
+  - the client also states each stream's dependency on another stream by specifying the ID of the stream on which it depends.
+    - This ID is known as the parent ID. If the parent ID is omitted, the stream is associated as the root node, and considered to be dependent on the root stream
+- This weight assignment mechanism provided in HTTP/2 allows client to change dependencies and reallocate weights at runtime in response to user interaction.
+- However, a server may change assigned priorities on its own if a certain stream is blocked from accessing a specific resource
+
+- HTTP/1.1.and HTTP/2 uses different buffer mechanism to deal with flow control
+- In HTTP/1.1, flow control relies on the underlying TCP connection. When this connection initiates, both client and server establish their buffer sizes using their system default settings.
+  - If the receiver’s buffer is partially filled with data, it will tell the sender its receive window is filled or contains available space via an ACK packet.
+    - this ACK packet (acknowledgement packet) will tell the sender that its receive window is open (non zero). If the receive window size is 0, the sender will not send any data until the client clears its internal buffer and then requests to resume data transmission.
+  - using receive window based on the underlying TCP connection can only implement flow control on one end (either end) of the connection
+  - HTTP/1.1 relies on the transport layer to avoid buffer overflow so each new TCP connection requires a separate flow control mechanism.
+- HTTP/2 multiplexes streams within a single TCP connection, and will have to implement flow control in a different manner.
+
+  - receive windows on the level of the TCP connection are not sufficient to regulate the delivery of individual streams.
+  - HTTP/2 solves this problem by allowing the client and server to implement their own flow controls, rather than relying on the transport layer. The application layer communicates the available buffer space, allowing the client and server to set the receive window on the level of the multiplexed streams.
+    - This fine-scale flow control can be modified or maintained after the initial connection via a WINDOW_UPDATE frame.
+
+- HTTP/2 introduces another method unique to the protocol - predicting resource requests with server push; HTTP/1.1 uses resource inlining
+- In HTTP/1.1, if the developer knows in advance which additional resources the client machine will need to render the page, they can use a technique called resource inlining to include the required resource directly within the HTML document that the server sends in response to the initial GET request.
+  - For example, if a client needs a specific CSS file to render a page, inlining that CSS file will provide the client with the needed resource before it asks for it, reducing the total number of requests that the client must send.
+  - the issue with this is that including the resource in the HTML document is a viable solution for smaller, text-based resources, but larger files in non-text formats can greatly increase the size of the HTML document, which can ultimately decrease the connection speed and nullify the original advantage gained from using this technique.
+  - Also, since the inlined resources are no longer separate from the HTML document, there is no mechanism for the client to decline resources that it already has, or to place a resource in its cache.
+    - If multiple pages require the resource, each new HTML document will have the same resource inlined in its code, leading to larger HTML documents and longer load times than if the resource were simply cached in the beginning.
+- In HTTP/2, this server push process begins when the server sends a PUSH_PROMISE frame to inform the client that it is going to push a resource.
+  - This frame includes only the header of the message, and allows the client to know ahead of time which resource the server will push.
+  - If it already has the resource cached, the client can decline the push by sending a RST_STREAM frame in response.
+  - The PUSH_PROMISE frame also saves the client from sending a duplicate request to the server, since it knows which resources the server is going to push.
+- Server push is client controlled. If a client needed to adjust the priority of server push, or even disable it, it could at any time send a SETTINGS frame to modify this HTTP/2 feature.
+- drawbacks of server push is that some web browsers cannot always cancel pushed requests, even if the client already has the resource cached.
+  - If the client mistakenly allows the server to send a duplicate resource, the server push can use up the connection unnecessarily.
+
+## Compression
+
+- HTTP/1.1 header component of a message is always sent as plain text. Although each header is quite small, the burden of this uncompressed data weighs heavier and heavier on the connection as more requests are made, particularly penalizing complicated.
+  - API-heavy web applications that require many different resources and thus many different resource requests.
+  - Additionally, the use of cookies can sometimes make headers much larger, increasing the need for some kind of compression.
+- HTTP/2 uses HPACK compression to shrink the size of headers
+  - HTTP/2 can split headers from their data, resulting in a header frame and a data frame. The HTTP/2-specific compression program HPACK can then compress this header frame.
