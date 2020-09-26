@@ -8,3 +8,7 @@ Difference between SSH and SSL
 
 So basically,
 SSL is used to ensure messages are not listened to while SSH is use to securely login to remote servers
+
+# SSL vs TLS
+
+TLS is the latest version of SSL and is more appropriately named because data does not have to travel over a “socket”; it can be transported in many different ways.
