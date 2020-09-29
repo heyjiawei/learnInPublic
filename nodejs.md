@@ -616,6 +616,36 @@ readableStream.push('ho!')
 writableStream.end()
 ```
 
+- All streams created by Node.js APIs operate exclusively on strings and Buffer (or Uint8Array) objects.
+- It is possible for stream implementations to work with other types of JavaScript values (with the exception of null, which serves a special purpose within streams). Such streams are considered to operate in "object mode".
+  - Stream instances are switched into object mode using the objectMode option when the stream is created.
+  - Attempting to switch an existing stream into object mode is not safe.
+- Duplex and Transform streams are both Readable and Writable and hence, each maintains two separate internal buffers used for reading and writing, allowing each side to operate independently of the other while maintaining an appropriate and efficient flow of data.
+
+### Readable streams
+
+- Readable streams effectively operate in one of two modes: flowing and paused.
+
+  - In flowing mode, data is read from the underlying system automatically and provided to an application as quickly as possible using events via the EventEmitter interface.
+  - In paused mode, the stream.read() method must be called explicitly to read chunks of data from the stream.
+  - If a Readable is switched into flowing mode and there are no consumers available to handle the data, that data will be lost.
+
+- All Readable streams begin in paused mode but can be switched to flowing mode in one of the following ways
+
+  - Adding a 'data' event handler.
+  - Calling the stream.resume() method.
+  - Calling the stream.pipe() method to send the data to a Writable.
+
+- The Readable can switch back to paused mode using one of the following:
+
+  - If there are no pipe destinations, by calling the stream.pause() method.
+  - If there are pipe destinations, switch back to paused mode by removing all pipe destinations. Multiple pipe destinations may be removed by calling the stream.unpipe() method.
+
+**The Readable Stream API provides multiple methods of consuming stream data. In general, developers should choose one of the methods of consuming data and should never use multiple methods to consume data from a single stream. Specifically, using a combination of on('data'), on('readable'), pipe(), or async iterators could lead to unintuitive behavior.**
+
+- Use of the readable.pipe() method is recommended for most users as it has been implemented to provide the easiest way of consuming stream data.
+- Developers that require more fine-grained control over the transfer and generation of data can use the EventEmitter and readable.on('readable')/readable.read() or the readable.pause()/readable.resume() APIs.
+
 ## Node.js difference between development and production
 
 - Node.js assumes it's always running in a development environment.
@@ -960,3 +990,70 @@ Let say we want our cli.js command-line file to be mapped to say-hello. We can d
 
 - When we finish to test our symlinked command, we may want to remove it. We can achieve that by running the following code from inside the package directory.
   `npm unlink`
+
+## ECMAScript Modules
+
+- Experimental support for ECMAScript modules is enabled by default.
+- Node.js will treat the following as ES modules:
+  - files ending with .mjs
+  - Files ending in .js when the nearest parent package.json file contains a top-level field "type" with a value of "module".
+  - Strings passed in as an argument to `--eval`, or piped to node via STDIN, with the flag `--input-type=module`.
+- Node.js will treat all other forms of input as CommonJS as well as the following:
+  - Files ending in .cjs.
+  - Files ending in .js when the nearest parent package.json file contains a top-level field "type" with a value of "commonjs".
+  - Strings passed in as an argument to `--eval` or `--print`, or piped to node via STDIN, with the flag `--input-type=commonjs`.
+
+### Package scope
+
+- A folder containing a package.json file, and all subfolders below that folder until the next folder containing another package.json, are a **package scope**.
+  - The "type" field defines how to treat .js files within the package scope.
+
+### Difference between loaded as ES module vs loaded as CommonJs
+
+- ES6 modules are pre-parsed in order to resolve further imports before code is executed.
+- CommonJS modules load dependencies on demand while executing the code.
+- CommonJS implementation allows for a defined structure in how files are loaded. Hence, code required from other files are loaded or parsed synchronously. For this reason, catching and detecting failure points or debugging code are easier and less tedious.
+
+Here is code where the execution order differs:
+
+```js
+// ES2015 modules
+
+// ---------------------------------
+// one.js
+console.log("running one.js");
+import { hello } from "./two.js";
+console.log(hello);
+
+// ---------------------------------
+// two.js
+console.log("running two.js");
+export const hello = "Hello from two.js";
+
+// ---------------------------------
+// output
+// running two.js
+// running one.js <<<<<<<
+// hello from two.js
+```
+
+```js
+// CommonJS modules
+
+// ---------------------------------
+// one.js
+console.log("running one.js");
+const hello = require("./two.js");
+console.log(hello);
+
+// ---------------------------------
+// two.js
+console.log("running two.js");
+module.exports = "Hello from two.js";
+
+// ---------------------------------
+// output
+// running one.js <<<<<<<
+// running two.js
+// hello from two.js
+```
