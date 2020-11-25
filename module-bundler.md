@@ -19,6 +19,7 @@ requires: What dependencies that file needs
 
 ```ts
 type Module = {
+  id: number;
   filepath: string;
   dependencies: Array<Dependency>;
   isEntryFile: boolean;
