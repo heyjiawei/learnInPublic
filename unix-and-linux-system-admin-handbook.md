@@ -376,3 +376,51 @@ Some operations can cause processes or threads to enter an uninterruptible sleep
 ## zombie processes
 
 these processes have finished executing but have not yet had their status collected by their parent process (or by init/systemd). If you see zombies hanging around, check their PPIDs with `ps` to find out where they are from.
+
+## ps: monitor processes
+
+The `ps` command is the system administrator's tool for monitoring processes. `ps` can differ in their arguments and display but they display essentially the same information. It is closely tied to the kernel's handling of processes so it tends to reflect all of the vendor's underlying kernel changes.
+
+`ps` shows the PID, UID, priority and control terminal processes. It also informs users how much memory a process is using, how much CPU time has been consumed, the process's current status (running, stopped, sleeping, etc. ).
+
+Zombies show up in `ps` listing as `<exiting>` or `<defunct>`.
+
+`ps` implementation have become complex over the years and vendors than abandoned attempt to define meaningful displays and made their `ps` completely configurable.
+
+> `ps` used by Linux is unix in that it accepts command-line flags with or without dash but might assign different interpretations to those forms. `ps -a` is not the same as `ps a`
+
+`ps` is mainly for developers, not system administrators. `ps aux` shows all processes running on the system.
+
+- `a` option show all processes
+- `x` also show processes that don't have a control terminal
+- `u` selects user oriented output format
+
+ps output can be modified by programs so it's not necessarily an accurate representation of the actual command line.
+
+`ps lax` gives more technical information. The `a` and `x` option are the same as above. `l` means the "long" output format. It includes fields such as parent process ID (PPID), niceness (NI), and the type of resource on which the process is waiting (WCHAN short for wait channel).
+
+`ps` shows a snapshot of the system at the point of time. `top` is a real-time version of `ps` that gives a regularly updated interactive summary of processes and their resource usage.
+
+### Handy commands
+
+```sh
+# Show all running processes on the system
+ps aux
+# display long output format that includes PPID, NI, WCHAN
+ps lax
+# display more columns in the output
+ps auxw
+# unlimited column width
+ps auxww
+# Find PID of output sshd
+ps aux | grep sshd
+# Remove grep process from list of process with grep -v
+ps aux | grep -v grep | grep sshd
+# get PID of a process
+pidof /usr/bin/sshd
+pgrep sshd
+# pidof and pgrep show all processes that match the passed string
+
+# show a real-time summary of processes and their resource usage
+top
+```
