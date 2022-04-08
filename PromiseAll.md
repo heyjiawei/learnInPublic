@@ -50,10 +50,26 @@ Promise.all = function (iterable) {
 
 ## Improved implementation
 
-After viewing [this](https://medium.com/@copperwall/implementing-promise-all-575a07db509a) solution
+After viewing [this](https://medium.com/@copperwall/implementing-promise-all-575a07db509a) solution, I think this way is cleaner, more explicit and elegant.
 
+The article provided 3 solutions - recursive, iterative and using reduce.
+The recursive solution and the solution using reduce produce incorrect results because they do not return the resolved promise in order. Notice how every promise in the array is resolved asynchronously and pieced back once their result is returned. This behaviour is incorrect.
+
+Example of incorrect behaviour:
 ```js
-// Iterator way
+const resolveAfter5sec = new Promise((resolve, _reject) =>
+  setTimeout(() => resolve(5000), 5000)
+);
+const resolveAfter1sec = new Promise((resolve, _reject) =>
+  setTimeout(() => resolve(1000), 1000)
+);
+
+Promise.all([resolveAfter5sec, resolveAfter1sec]);
+// expect [5000, 1000]
+```
+
+Correct (and improved) implementation:
+```js
 Promise.all = function (iterable) {
   return new Promise((resolve, reject) => {
     let complete = 0;
