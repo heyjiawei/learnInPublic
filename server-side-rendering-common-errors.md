@@ -20,7 +20,7 @@ Vice versa if you are coming from Node.js:
 Solution:
 - You need to be aware whenever you use "global objects" (or standard built-in objects). 
 Here, "global objects" refer to [objects in the global scope](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects).
-Instead of using `window`, `global` and `self` (to be accurate, `window.self`. Used in web workers), you can start using [`globalThis`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis). 
+Instead of using `window`, `global` and `self`, you can start using [`globalThis`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis). 
 
 - take note of when `globalThis` is supported though. You may need to polyfill it yourself if you are supporting older browsers.
 
