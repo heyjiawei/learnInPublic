@@ -26,6 +26,12 @@ Instead of using `window`, `global` and `self`, you can start using [`globalThis
 
 - Also, do take note of functions exclusive to an environment. Functions like alert() which are exclusive to the Browser will still not work after switching it to `globalThis`.
 
+- It is usually better to access global object variables via variables and not via properties of `globalThis`. The former has always worked the same on all JavaScript platforms. For example:
+```js
+window.encodeURIComponent(str); // no
+encodeURIComponent(str); // yes
+```
+
 2. rendering time-based components
 
 When rendering in a server environment, oftentimes the server isn't located in the same area as the user. 
