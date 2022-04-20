@@ -21,6 +21,7 @@ loadScriptPromiseResolve("path/script.js").then((result) =>
 
 - promisify needs to take in the argument provided to the function that it will promisify
 - instead of passing in a callback as a parameter, the `.then()` would function as the callback. This means the promisify function also implement the callback and return us the results via a thenable
+- Note that the passed in callback must adhere to the function signature `(error, result) => { ... }` otherwise it wouldn't work
 
 ```js
 function promisify(promisifyFn) {
